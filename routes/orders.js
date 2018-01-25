@@ -247,7 +247,7 @@ OrderItem.find({OrderItemStatus:req.query.OrderItemStatus},function(err,orderIte
     console.log(response);
     res.json(response);
   }
-});
+}).populate('CustomerId').populate('SticherName').populate('MasterName');
 });
 
 module.exports = router;
