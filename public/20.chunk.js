@@ -143,6 +143,7 @@ var employee_Service_1 = __webpack_require__("./src/services/employee.Service.ts
 var EmployeeFormComponent = (function () {
     function EmployeeFormComponent(_emplloyeeService) {
         this._emplloyeeService = _emplloyeeService;
+        this.employeeRoles = [];
     }
     EmployeeFormComponent.prototype.addEmployee = function () {
         var _this = this;
@@ -374,7 +375,7 @@ var Server = (function () {
     }
     Server.prototype.getServerURL = function () {
         // return "http://localhost:3100/";
-        return "https://ssbotiquenew.azurewebsites.net/";
+        return "https://botiquetest.azurewebsites.net/";
     };
     return Server;
 }());

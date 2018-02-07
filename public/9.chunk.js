@@ -21767,7 +21767,7 @@ var CustomerService = (function () {
     CustomerService.prototype.GetMeasurementById = function (CustomerId) {
         var headers = new http_2.Headers();
         headers.append('Content-Type', 'application/json; charset=UTF-8');
-        return this._http.get(this.getMeasurementURL + CustomerId, { headers: headers })
+        return this._http.get(this.baseURL + this.getMeasurementURL + CustomerId, { headers: headers })
             .map(function (res) { return res.json(); });
     };
     CustomerService = __decorate([
@@ -21974,7 +21974,7 @@ var Server = (function () {
     }
     Server.prototype.getServerURL = function () {
         // return "http://localhost:3100/";
-        return "https://ssbotiquenew.azurewebsites.net/";
+        return "https://botiquetest.azurewebsites.net/";
     };
     return Server;
 }());

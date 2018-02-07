@@ -323,6 +323,7 @@ var ShowMeasurementComponent = (function () {
         this._customerService.getCustomersByContactNumber(this.newMeasurement.CustomerContactNumber).subscribe(function (res) {
             if (res.code == 200) {
                 _this.customers = res.data;
+                console.log(_this.customers);
                 $("#snackbar").html("Data is Available");
             }
             else {
@@ -358,12 +359,13 @@ var ShowMeasurementComponent = (function () {
     ShowMeasurementComponent.prototype.getForms = function (elem) {
         var _this = this;
         this.allFalse();
-        console.log(elem);
+        console.log("elem is " + elem);
         if (elem == "Shalwar Kameez") {
+            console.log("Inside SK");
             this.allFalse();
             this.ShalwarKameez = true;
             this._customerService.GetMeasurementById(this.Customer_Id).subscribe(function (res) {
-                console.log(res);
+                console.log("response received is " + res);
                 for (var i = 0; i < res.data.length; i++) {
                     if ((res.data[i].CustomerId._id == _this.Customer_Id) || res.data[i].CustomerId._id == _this.customers[i]._id) {
                         _this.MultipleMeasurement[i] = res.data[i];
@@ -717,7 +719,7 @@ var CustomerService = (function () {
     CustomerService.prototype.GetMeasurementById = function (CustomerId) {
         var headers = new http_2.Headers();
         headers.append('Content-Type', 'application/json; charset=UTF-8');
-        return this._http.get(this.getMeasurementURL + CustomerId, { headers: headers })
+        return this._http.get(this.baseURL + this.getMeasurementURL + CustomerId, { headers: headers })
             .map(function (res) { return res.json(); });
     };
     CustomerService = __decorate([
@@ -872,7 +874,7 @@ var Server = (function () {
     }
     Server.prototype.getServerURL = function () {
         // return "http://localhost:3100/";
-        return "https://ssbotiquenew.azurewebsites.net/";
+        return "https://botiquetest.azurewebsites.net/";
     };
     return Server;
 }());
