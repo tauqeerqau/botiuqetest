@@ -121,6 +121,8 @@ addCustomerOrder.post(function (req, res) {
           orderItem.Quantity = orderItems[i].Quantity;
           orderItem.CustomerId = orderItems[i].CustomerId;
           orderItem.OrderItemStatus = orderItemStatuses.Pending();
+          orderItem.DeliveryDate = req.body.DeliveryDate;
+          orderItem.TryDate = req.body.TryDate;
           orderItem.save();
           customerOrder.OrderItemId.push(orderItem._id);
         }
