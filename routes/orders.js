@@ -254,7 +254,7 @@ getOrderItemsByStatus.get(function (req, res) {
 });
 
 updateOrder.post(function (req, res) {
-  CustomerOrder.findById(orderId, function (err, order) {
+  CustomerOrder.findById(req.body.orderId, function (err, order) {
     if (err) {
       response.message = messages.getFailureMessage();
       response.code = codes.getFailureCode();
