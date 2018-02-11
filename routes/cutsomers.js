@@ -378,7 +378,7 @@ addCustomerPattern.post(function (req, res) {
 });
 
 getPatternCustomers.get(function (req, res) {
-  Customer.find({ HasPattern: true }, function (err, customers) {
+  CustomerPattern.find(function(err,customerPatterns){
     if(err)
     {
       console.log(err);
@@ -391,7 +391,7 @@ getPatternCustomers.get(function (req, res) {
     {
       response.message = messages.getSuccessMessage();
       response.code = codes.getSuccessCode();
-      response.data = customers;
+      response.data = customerPatterns;
       res.json(response);
     }
   });
