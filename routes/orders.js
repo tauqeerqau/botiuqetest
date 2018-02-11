@@ -31,6 +31,7 @@ var changeOrderStatus = router.route('/changeOrderStatus');
 var changeOrderItemAsignee = router.route('/changeOrderItemAsignee');
 var getOrdersByStatus = router.route('/getOrdersByStatus');
 var getOrderItemsByStatus = router.route('/getOrderItemsByStatus');
+var updateOrder = router.route('/updateOrder');
 /* GET users listing. */
 router.get('/', function (req, res, next) {
   res.send('respond with a resource');
@@ -233,23 +234,47 @@ getOrdersByStatus.get(function (req, res) {
   }).populate('CustomerId');
 });
 
-getOrderItemsByStatus.get(function(req,res){
-OrderItem.find({OrderItemStatus:req.query.OrderItemStatus},function(err,orderItems){
-  if (err) {
-    response.message = messages.getFailureMessage();
-    response.code = codes.getFailureCode();
-    response.data = err;
-    console.log(response);
-    res.json(response);
-  }
-  else {
-    response.message = messages.getSuccessMessage();
-    response.code = codes.getSuccessCode();
-    response.data = orderItems;
-    console.log(response);
-    res.json(response);
-  }
-}).populate('CustomerId').populate('SticherName').populate('MasterName');
+getOrderItemsByStatus.get(function (req, res) {
+  OrderItem.find({ OrderItemStatus: req.query.OrderItemStatus }, function (err, orderItems) {
+    if (err) {
+      response.message = messages.getFailureMessage();
+      response.code = codes.getFailureCode();
+      response.data = err;
+      console.log(response);
+      res.json(response);
+    }
+    else {
+      response.message = messages.getSuccessMessage();
+      response.code = codes.getSuccessCode();
+      response.data = orderItems;
+      console.log(response);
+      res.json(response);
+    }
+  }).populate('CustomerId').populate('SticherName').populate('MasterName');
+});
+
+updateOrder.post(function (req, res) {
+  CustomerOrder.findById(orderId, function (err, order) {
+    if (err) {
+      response.message = messages.getFailureMessage();
+      response.code = codes.getFailureCode();
+      response.data = err;
+      console.log(response);
+      res.json(response);
+    }
+    else {
+      order.DeliveryDate = req.body.DeliveryDate;
+      order.TryDate = req.body.TryDate;
+      order.SpecialInstructions = req.body.SpecialInstructions;
+      order.save(function (err, order) {
+        response.message = messages.getSuccessMessage();
+        response.code = codes.getSuccessCode();
+        response.data = order;
+        console.log(response);
+        res.json(response);
+      });
+    }
+  });
 });
 
 module.exports = router;
