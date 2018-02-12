@@ -27,6 +27,7 @@ var getOrderItems = router.route('/getOrderItems');
 var addCustomerOrder = router.route('/addCustomerOrder');
 var getOrderByOrderId = router.route('/getOrderByOrderId');
 var getOrderItemsByOrderId = router.route('/getOrderItemsByOrderId');
+var getOrderItemByItemId = router.route('/getOrderItemByItemId');
 var changeOrderStatus = router.route('/changeOrderStatus');
 var changeOrderItemAsignee = router.route('/changeOrderItemAsignee');
 var getOrdersByStatus = router.route('/getOrdersByStatus');
@@ -163,7 +164,7 @@ getOrderItemsByOrderId.get(function (req, res) {
   CustomerOrder.findById(req.query.OrderId, function (err, orderItems) {
     res.json(orderItems);
   })
-  .select('OrderItemId').populate('CustomerId').populate('SticherName').populate('MasterName');
+    .select('OrderItemId').populate('CustomerId').populate('SticherName').populate('MasterName');
 });
 
 changeOrderStatus.post(function (req, res) {
@@ -275,6 +276,27 @@ updateOrder.post(function (req, res) {
       });
     }
   });
+});
+
+getOrderItemByItemId.get(function (req, res) {
+  OrderItem.findById(req.query.orderItemId, function (err, orderItem) {
+    if(err)
+    {
+      response.message = messages.getFailureMessage();
+      response.code = codes.getFailureCode();
+      response.data = err;
+      console.log(response);
+      res.json(response);
+    }
+    else
+    {
+      response.message = messages.getSuccessMessage();
+      response.code = codes.getSuccessCode();
+      response.data = orderItem;
+      console.log(response);
+      res.json(response);
+    }
+  }).populate('CustomerId').populate('SticherName').populate('MasterName');
 });
 
 module.exports = router;
