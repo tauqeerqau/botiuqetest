@@ -163,7 +163,7 @@ getOrderItemsByOrderId.get(function (req, res) {
   CustomerOrder.findById(req.query.OrderId, function (err, orderItems) {
     res.json(orderItems);
   })
-    .select('OrderItemId');
+  .select('OrderItemId').populate('CustomerId').populate('SticherName').populate('MasterName');
 });
 
 changeOrderStatus.post(function (req, res) {
