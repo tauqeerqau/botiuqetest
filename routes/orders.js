@@ -271,6 +271,7 @@ updateOrder.post(function (req, res) {
       order.TryDate = req.body.TryDate;
       order.SpecialInstructions = req.body.SpecialInstructions;
       order.OrderStatus = req.body.OrderStatus;
+      order.BalanceToBePaid = req.body.BalanceToBePaid;
       order.save(function (err, order) {
         response.message = messages.getSuccessMessage();
         response.code = codes.getSuccessCode();
