@@ -270,6 +270,7 @@ updateOrder.post(function (req, res) {
       order.DeliveryDate = req.body.DeliveryDate;
       order.TryDate = req.body.TryDate;
       order.SpecialInstructions = req.body.SpecialInstructions;
+      order.OrderStatus = req.body.OrderStatus;
       order.save(function (err, order) {
         response.message = messages.getSuccessMessage();
         response.code = codes.getSuccessCode();
