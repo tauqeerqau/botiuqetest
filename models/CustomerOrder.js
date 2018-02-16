@@ -16,7 +16,7 @@ var CustomerOrderSchema = new mongoose.Schema({
     TryDate:Number,
     Discount:Number,
     BalanceToBePaid:Number,
-    OrderTotalAfterDiscount,
+    OrderTotalAfterDiscount:Number,
     OrderStatus:Number,
     OrderItemId :  [{type: mongoose.Schema.Types.ObjectId, ref: 'OrderItem'}],
     CustomerId : {type: mongoose.Schema.Types.ObjectId, ref: 'Customer'},
