@@ -267,11 +267,16 @@ updateOrder.post(function (req, res) {
       res.json(response);
     }
     else {
-      order.DeliveryDate = req.body.DeliveryDate;
-      order.TryDate = req.body.TryDate;
-      order.SpecialInstructions = req.body.SpecialInstructions;
-      order.OrderStatus = req.body.OrderStatus;
-      order.BalanceToBePaid = req.body.BalanceToBePaid;
+      if (req.body.DeliveryDate != null)
+        order.DeliveryDate = req.body.DeliveryDate;
+      if (req.body.TryDate != null)
+        order.TryDate = req.body.TryDate;
+      if (req.body.SpecialInstructions != null)
+        order.SpecialInstructions = req.body.SpecialInstructions;
+      if (req.body.OrderStatus != null)
+        order.OrderStatus = req.body.OrderStatus;
+      if (req.body.BalanceToBePaid != null)
+        order.BalanceToBePaid = req.body.BalanceToBePaid;
       order.save(function (err, order) {
         response.message = messages.getSuccessMessage();
         response.code = codes.getSuccessCode();
@@ -285,16 +290,14 @@ updateOrder.post(function (req, res) {
 
 getOrderItemByItemId.get(function (req, res) {
   OrderItem.findById(req.query.orderItemId, function (err, orderItem) {
-    if(err)
-    {
+    if (err) {
       response.message = messages.getFailureMessage();
       response.code = codes.getFailureCode();
       response.data = err;
       console.log(response);
       res.json(response);
     }
-    else
-    {
+    else {
       response.message = messages.getSuccessMessage();
       response.code = codes.getSuccessCode();
       response.data = orderItem;
