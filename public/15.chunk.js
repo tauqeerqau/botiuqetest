@@ -21387,15 +21387,38 @@ var showPatternComponent = (function () {
         this._customerService = _customerService;
         this._ShowPatternService = _ShowPatternService;
         this._showPatternModel = [];
+        this.a = "Shalwar Kameez";
+        this.b = "Coat";
+        this.c = "Sherwani";
+        this.d = "Waist Coat";
+        this.e = "Pant";
+        this.f = "Trouser";
         this._ShowPatternService.GetPattern().subscribe(function (res) {
             for (var i = 0; i < res.data.length; i++) {
                 _this._showPatternModel[i] = res.data[i];
                 console.log("Pattern data " + res);
+                if (_this._showPatternModel[i].DressType == 1) {
+                    _this._showPatternModel[i].DressType = _this.a;
+                    console.log('a', res.DressType);
+                }
+                else if (_this._showPatternModel[i].DressType == 2) {
+                    _this._showPatternModel[i].DressType = _this.b;
+                }
+                else if (_this._showPatternModel[i].DressType == 3) {
+                    _this._showPatternModel[i].DressType = _this.c;
+                }
+                else if (_this._showPatternModel[i].DressType == 4) {
+                    _this._showPatternModel[i].DressType = _this.d;
+                }
+                else if (_this._showPatternModel[i].DressType == 5) {
+                    _this._showPatternModel[i].DressType = _this.e;
+                }
+                else if (_this._showPatternModel[i].DressType == 6) {
+                    _this._showPatternModel[i].DressType = _this.f;
+                }
             }
             console.log(_this._showPatternModel);
         });
-        if (this._showPatternModel.DressType == 1)
-            ;
     }
     showPatternComponent.prototype.searchByName = function () {
         var _this = this;
@@ -21554,7 +21577,7 @@ module.exports = "/*!\r\n * Datepicker for Bootstrap v1.6.1 (https://github.com/
 /***/ "./src/app/showpattern/showPattern.template.html":
 /***/ function(module, exports) {
 
-module.exports = "<h1>Show Pattern Form</h1>\r\n<div id=\"snackbar\"></div>\r\n\r\n<div class=\"container\">\r\n\r\n  <div class=\"row\">\r\n    <div class=\"col-md-6 col-lg-6 col-sm-6 offset-lg-3 offset-md-3 offset-sm-3 common-form\">\r\n        <div class=\"table-responsive\">          \r\n            <table class=\"table table-bordered\">\r\n              <thead>\r\n                <tr>\r\n                  <th>#</th>\r\n                  <th>Name</th>\r\n                  <th>Address</th>\r\n                  <th>ContactNumber</th>  \r\n                  <th>Dress Type </th>\r\n                </tr>\r\n              </thead>\r\n              <tbody>\r\n                <tr *ngFor=\"let Pattern of _showPatternModel;let i=index\">\r\n                  <td>{{i}}</td>\r\n                  <td>{{Pattern.FullName}}</td>\r\n                  <td>{{Pattern.Address}}</td>\r\n                  <td>{{Pattern.ContactNumber}}</td>\r\n                  <td>{{Pattern.DressType}}</td>\r\n                </tr>\r\n              </tbody>\r\n            </table>\r\n            </div>\r\n          \r\n\r\n\r\n    \r\n\r\n\r\n\r\n    \r\n\r\n  <!--     <div class=\"row\" id=\"selectType\">\r\n        <h1 class=\"record-text\">Record Measurements for:</h1>\r\n       \r\n      </div> -->\r\n    </div>\r\n  </div>\r\n\r\n  <div class=\"row row-2\">\r\n\r\n    </div>\r\n   \r\n    \r\n \r\n\r\n    \r\n\r\n    \r\n\r\n      \r\n\r\n       \r\n\r\n          \r\n        \r\n\r\n</div>"
+module.exports = "<h1>Show Pattern Form</h1>\r\n<div id=\"snackbar\"></div>\r\n\r\n<div class=\"container\">\r\n\r\n  <div class=\"row\">\r\n    <div class=\"col-md-6 col-lg-6 col-sm-6 offset-lg-3 offset-md-3 offset-sm-3 common-form\">\r\n        <div class=\"table-responsive\">          \r\n            <table class=\"table table-bordered\">\r\n              <thead>\r\n                <tr>\r\n                  <th>#</th>\r\n                  <th>Name</th>\r\n                  <th>Address</th>\r\n                  <th>ContactNumber</th>  \r\n                  <th>Dress Type </th>\r\n                </tr>\r\n              </thead>\r\n              <tbody>\r\n                <tr *ngFor=\"let Pattern of _showPatternModel;let i=index\">\r\n                  <td>{{i}}</td>\r\n                  <td>{{Pattern.CustomerId.FullName}}</td>\r\n                  <td>{{Pattern.CustomerId.Address}}</td>\r\n                  <td>{{Pattern.CustomerId.ContactNumber}}</td>\r\n                  <td>{{Pattern.DressType}}</td>\r\n                </tr>\r\n              </tbody>\r\n            </table>\r\n            </div>\r\n          \r\n\r\n\r\n    \r\n\r\n\r\n\r\n    \r\n\r\n  <!--     <div class=\"row\" id=\"selectType\">\r\n        <h1 class=\"record-text\">Record Measurements for:</h1>\r\n       \r\n      </div> -->\r\n    </div>\r\n  </div>\r\n\r\n  <div class=\"row row-2\">\r\n\r\n    </div>\r\n   \r\n    \r\n \r\n\r\n    \r\n\r\n    \r\n\r\n      \r\n\r\n       \r\n\r\n          \r\n        \r\n\r\n</div>"
 
 /***/ },
 
