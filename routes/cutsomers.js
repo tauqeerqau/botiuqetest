@@ -394,7 +394,7 @@ getPatternCustomers.get(function (req, res) {
       response.data = customerPatterns;
       res.json(response);
     }
-  });
+  }).populate('CustomerId');
 });
 
 module.exports = router;
