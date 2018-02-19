@@ -21961,6 +21961,14 @@ var OrderService = (function () {
         console.log(body);
         return body.data || {};
     };
+    OrderService.prototype.changeOrderItemStatus = function (orderItemId, OrderItemStatus) {
+        var data;
+        data = { OrderItemId: orderItemId, OrderItemStatus: OrderItemStatus };
+        var headers = new http_2.Headers();
+        headers.append('Content-Type', 'application/json; charset=UTF-8');
+        return this._http.post(this.baseURL + "orders/changeOrderItemAsignee", data, { headers: headers })
+            .map(function (res) { return res.json(); });
+    };
     OrderService.prototype.AssignThisOrderItemToUser = function (orderItem, assignedBy, stitcher, master) {
         var data;
         data = { OrderItemId: orderItem, AssignedBy: assignedBy, SticherName: stitcher, MasterName: master };

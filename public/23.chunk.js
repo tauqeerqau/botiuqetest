@@ -152,15 +152,15 @@ var EmployeeFormComponent = (function () {
         this._emplloyeeService.addEmployee(this.newEmployee).subscribe(function (res) {
             console.log(res);
             console.log(_this.newEmployee);
-            if (_this.newEmployee.EmployeeRole != null && _this.newEmployee.Address != null &&
-                _this.newEmployee.ContactNumber != null &&
-                _this.newEmployee.FullName != null && _this.newEmployee.Email != null &&
+            if (_this.newEmployee.EmployeeRole != null || _this.newEmployee.Address != null ||
+                _this.newEmployee.ContactNumber != null ||
+                _this.newEmployee.FullName != null || _this.newEmployee.Email != null ||
                 _this.newEmployee.CNIC != null) {
                 $("#snackbar").html("New Employee Create");
                 _this.showToast();
             }
             else {
-                $("#snackbar").html("Please Insert All Fields");
+                $("#snackbar").html("Please Insert Empty Fields");
                 _this.showToast();
             }
         });
