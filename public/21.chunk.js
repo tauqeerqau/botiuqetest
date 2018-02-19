@@ -205,11 +205,7 @@ var CustomerMeasurementForm = (function () {
                         $("#snackbar").html("Measurement Saved Successfully");
                         _this.showToast();
                         _this.newMeasurement = new measurement_1.Measurement();
-                        $("#selectType").hide();
                         _this.allFalse();
-                        $('.measurementsType option').prop('selected', function () {
-                            return this.defaultSelected;
-                        });
                     }
                     else {
                         $("#snackbar").html(res.message);
@@ -231,7 +227,6 @@ var CustomerMeasurementForm = (function () {
                         $("#snackbar").html("Measurement Saved Successfully");
                         _this.showToast();
                         _this.newMeasurement = new measurement_1.Measurement();
-                        $("#selectType").hide();
                         _this.allFalse();
                         $('.measurementsType option').prop('selected', function () {
                             return this.defaultSelected;
@@ -257,7 +252,6 @@ var CustomerMeasurementForm = (function () {
                         $("#snackbar").html("Measurement Saved Successfully");
                         _this.showToast();
                         _this.newMeasurement = new measurement_1.Measurement();
-                        $("#selectType").hide();
                         _this.allFalse();
                         $('.measurementsType option').prop('selected', function () {
                             return this.defaultSelected;
@@ -283,7 +277,6 @@ var CustomerMeasurementForm = (function () {
                         $("#snackbar").html("Measurement Saved Successfully");
                         _this.showToast();
                         _this.newMeasurement = new measurement_1.Measurement();
-                        $("#selectType").hide();
                         _this.allFalse();
                         $('.measurementsType option').prop('selected', function () {
                             return this.defaultSelected;
@@ -309,7 +302,6 @@ var CustomerMeasurementForm = (function () {
                         $("#snackbar").html("Measurement Saved Successfully");
                         _this.showToast();
                         _this.newMeasurement = new measurement_1.Measurement();
-                        $("#selectType").hide();
                         _this.allFalse();
                         $('.measurementsType option').prop('selected', function () {
                             return this.defaultSelected;
@@ -336,7 +328,6 @@ var CustomerMeasurementForm = (function () {
                         $("#snackbar").html("Measurement Saved Successfully");
                         _this.showToast();
                         _this.newMeasurement = new measurement_1.Measurement();
-                        $("#selectType").hide();
                         _this.allFalse();
                         $('.measurementsType option').prop('selected', function () {
                             return this.defaultSelected;
@@ -361,7 +352,6 @@ var CustomerMeasurementForm = (function () {
                         $("#snackbar").html("Measurement Saved Successfully");
                         _this.showToast();
                         _this.newMeasurement = new measurement_1.Measurement();
-                        $("#selectType").hide();
                         _this.allFalse();
                         $('.measurementsType option').prop('selected', function () {
                             return this.defaultSelected;
@@ -381,7 +371,6 @@ var CustomerMeasurementForm = (function () {
                     $("#snackbar").html("Measurement Saved Successfully");
                     _this.showToast();
                     _this.newMeasurement = new measurement_1.Measurement();
-                    $("#selectType").hide();
                     $('.measurementsType option').prop('selected', function () {
                         return this.defaultSelected;
                     });
