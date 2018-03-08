@@ -19852,7 +19852,7 @@ var DoSubscriber = (function (_super) {
 
 /***/ },
 
-/***/ "./src/app/userData/userData.component.ts":
+/***/ "./src/app/orderDetails/orderdetail.component.ts":
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -19864,39 +19864,37 @@ var orderItem_1 = __webpack_require__("./src/models/orderItem.ts");
 var order_Service_1 = __webpack_require__("./src/services/order.Service.ts");
 var customer_Service_1 = __webpack_require__("./src/services/customer.Service.ts");
 var oneOrder_1 = __webpack_require__("./src/models/oneOrder.ts");
+var GetOrderitemModel_1 = __webpack_require__("./src/models/GetOrderitemModel.ts");
 var employee_Service_1 = __webpack_require__("./src/services/employee.Service.ts");
-var userDataComponent = (function () {
-    function userDataComponent(_orderService, _employeeService, _customerService) {
-        var _this = this;
+var OrderdetailComponent = (function () {
+    function OrderdetailComponent(_orderService, _employeeService, _customerService) {
         this._orderService = _orderService;
         this._employeeService = _employeeService;
         this._customerService = _customerService;
+        this.UpdateValue = {};
+        this.Updateform = true;
+        this.orderform = false;
+        this.OrderModelArray = [];
+        this.printbtn = false;
+        this.Printform = false;
+        this._OneOrder = [];
         this.orderFetched = false;
         this.allEmployees = [];
         this.ordersList = [];
+        this.Pending = 'Pending';
+        this.Cutting = 'Cutting';
+        this.Stiching = 'Stiching';
+        this.Readyatwarehouse = 'Ready at warehouse';
+        this.ReachedOutlet = 'Reached Outlet';
+        this.notavailable = 'Unavailable Status';
         this.IsAdmin = false;
-        this._employeeService.getEmployees().subscribe(function (a) {
-            _this.allEmployees = a.data;
-            console.log(_this.allEmployees);
-            $("#snackbar").html("Show data Successfully");
-            _this.showToast();
-        });
+        this.value = 0;
+        this.userObject = JSON.parse(localStorage.getItem('user'));
+        if (this.userObject.EmployeeRole == 1) {
+            this.IsAdmin = true;
+        }
     }
-    userDataComponent.prototype.addUser = function () {
-        var _this = this;
-        this._orderService.addUserSystem(this.Customer_Id, this.Name, this.Password).subscribe(function (res) {
-            console.log(res);
-            $("#snackbar").html("Create User Successfully");
-            _this.showToast();
-        });
-        this.Name = undefined;
-        this.Password = undefined;
-    };
-    userDataComponent.prototype.getCustomerId = function (Id) {
-        this.Customer_Id = Id;
-        console.log(this.Customer_Id);
-    };
-    userDataComponent.prototype.getOrdersByStatus = function (elem) {
+    OrderdetailComponent.prototype.getOrdersByStatus = function (elem) {
         var _this = this;
         console.log(elem);
         if (elem == 100) {
@@ -19944,20 +19942,123 @@ var userDataComponent = (function () {
             });
         }
     };
-    userDataComponent.prototype.setOrderStatus = function (elem, order) {
+    OrderdetailComponent.prototype.UpdateOrder = function (order) {
         var _this = this;
+        this._SingleGetOrderitemModel = new GetOrderitemModel_1.GetOrderitemModel();
+        console.log(order);
+        this.Updateform = false;
+        this.orderform = true;
+        this.OrderId = order._id;
+        this._SingleGetOrderitemModel.SpecialInstructions = order.SpecialInstructions;
+        this._SingleGetOrderitemModel = new GetOrderitemModel_1.GetOrderitemModel();
+        this._orderService.getorderitem(this.OrderId).subscribe(function (a) {
+            _this._SingleGetOrderitemModel = a;
+            console.log('object', _this._SingleGetOrderitemModel);
+            console.log('allll', a);
+            _this.a = new Date(a.DeliveryDate * 1000);
+            _this.b = new Date(a.TryDate * 1000);
+            _this.c = _this.SpecialInstructions;
+            console.log(_this.a);
+            console.log(_this.b);
+            /*
+  
+              console.log('instruction',  this._SingleGetOrderitemModel.SpecialInstructions);
+              console.log('Order Status',  this._SingleGetOrderitemModel.OrderStatus=this.OrderStatus);
+              console.log('Remaining Amount',  this._SingleGetOrderitemModel.RemainingAmount=this.RemainingAmount);
+              console.log('orderId',  this._SingleGetOrderitemModel._id);
+              console.log('Deliveryerydate',this._SingleGetOrderitemModel.DeliveryDate = this.a);
+              console.log('trydate',this._SingleGetOrderitemModel.TryDate = this.b);
+  
+  
+   */
+            _this._SingleGetOrderitemModel.DeliveryDate = _this.a;
+            _this._SingleGetOrderitemModel.TryDate = _this.b;
+            console.log('Delivery date', _this._SingleGetOrderitemModel.DeliveryDate);
+            console.log('Try date', _this._SingleGetOrderitemModel.TryDate);
+            if (_this._SingleGetOrderitemModel.OrderStatus == 100) {
+                _this._SingleGetOrderitemModel.OrderStatus = _this.Pending;
+            }
+            else if (_this._SingleGetOrderitemModel.OrderStatus == 200) {
+                _this._SingleGetOrderitemModel.OrderStatus = _this.Cutting;
+            }
+            else if (_this._SingleGetOrderitemModel.OrderStatus == 300) {
+                _this._SingleGetOrderitemModel.OrderStatus = _this.Stiching;
+            }
+            else if (_this._SingleGetOrderitemModel.OrderStatus == 400) {
+                _this._SingleGetOrderitemModel.OrderStatus = _this.Readyatwarehouse;
+            }
+            else if (_this._SingleGetOrderitemModel.OrderStatus == 500) {
+                _this._SingleGetOrderitemModel.OrderStatus = _this.ReachedOutlet;
+            }
+            else {
+                _this._SingleGetOrderitemModel.OrderStatus = _this.notavailable;
+            }
+            $("#snackbar").html("Order list show Successfully!");
+            _this.showToast();
+        });
+    };
+    OrderdetailComponent.prototype.addOrder = function (_1SingleGetOrderitemModel) {
+        var _this = this;
+        _1SingleGetOrderitemModel.orderId = this.OrderId;
+        _1SingleGetOrderitemModel.OrderStatus = _1SingleGetOrderitemModel.OrderStatus;
+        _1SingleGetOrderitemModel.RemainingAmount = _1SingleGetOrderitemModel.RemainingAmount;
+        _1SingleGetOrderitemModel.SpecialInstructions = this._SingleGetOrderitemModel.SpecialInstructions;
+        _1SingleGetOrderitemModel.DeliveryDate = Math.round(new Date(_1SingleGetOrderitemModel.DeliveryDate).getTime() / 1000);
+        _1SingleGetOrderitemModel.DeliveryDate = _1SingleGetOrderitemModel.DeliveryDate;
+        _1SingleGetOrderitemModel.TryDate = Math.round(new Date(_1SingleGetOrderitemModel.TryDate).getTime() / 1000);
+        _1SingleGetOrderitemModel.TryDate = _1SingleGetOrderitemModel.TryDate;
+        this.UpdateValue.orderId = this.OrderId;
+        this.UpdateValue.OrderStatus = _1SingleGetOrderitemModel.OrderStatus;
+        this.UpdateValue.RemainingAmount = _1SingleGetOrderitemModel.RemainingAmount;
+        this.UpdateValue.SpecialInstructions = _1SingleGetOrderitemModel.SpecialInstructions;
+        this.UpdateValue.DeliveryDate = _1SingleGetOrderitemModel.DeliveryDate;
+        this.UpdateValue.TryDate = _1SingleGetOrderitemModel.TryDate;
+        if (this.UpdateValue.OrderStatus == this.Pending) {
+            this._SingleGetOrderitemModel.OrderStatus = 100;
+        }
+        else if (this.UpdateValue.OrderStatus == this.Cutting) {
+            this.UpdateValue.OrderStatus = 200;
+        }
+        else if (this.UpdateValue.OrderStatus == this.Stiching) {
+            this.UpdateValue.OrderStatus = 300;
+        }
+        else if (this.UpdateValue.OrderStatus == this.Readyatwarehouse) {
+            this.UpdateValue.OrderStatus = 400;
+        }
+        else if (this.UpdateValue.OrderStatus == this.ReachedOutlet) {
+            this.UpdateValue.OrderStatus = 500;
+        }
+        else {
+            this.UpdateValue.OrderStatus = 600;
+        }
+        this._orderService.UpdateCustomerOrder(this.UpdateValue).subscribe(function (res) {
+            console.log('AddOreder', res);
+            $("#snackbar").html("Successfully Updated");
+            _this.showToast();
+        });
+        this._SingleGetOrderitemModel.OrderStatus = undefined;
+        this._SingleGetOrderitemModel.RemainingAmount = undefined;
+        this._SingleGetOrderitemModel.SpecialInstructions = undefined;
+        this.a = undefined;
+        this.b = undefined;
+    };
+    OrderdetailComponent.prototype.setOrderStatus = function (elem, order) {
+        var _this = this;
+        console.log(elem);
         this._orderService.editOrderStatus(elem, order._id).subscribe(function (a) {
             if (a.code == 200) {
-                $("#snackbar").html("Order Edited Successfully!");
-                _this.showToast();
+                var index = _this.ordersList.findIndex(function (x) { return x._id == order._id; });
+                _this.ordersList.splice(index, 1);
             }
             else {
                 $("#snackbar").html("Errors!");
                 _this.showToast();
             }
+            $("#snackbar").html("Order Edited Successfully!");
+            _this.showToast();
         });
     };
-    userDataComponent.prototype.viewThisOrder = function (order) {
+    OrderdetailComponent.prototype.viewThisOrder = function (order) {
         var _this = this;
         this._orderService.getDetailsForOrder(order._id).subscribe(function (a) {
             console.log(a);
@@ -19970,11 +20071,71 @@ var userDataComponent = (function () {
             _this.allEmployees = a.data;
         });
     };
-    userDataComponent.prototype.getSelectedStitcher = function (elem) {
+    OrderdetailComponent.prototype.Print = function (order) {
+        var _this = this;
+        this.Updateform = false;
+        this.orderform = false;
+        this.printbtn = true;
+        this.Printform = true;
+        this._orderService.getDetailsForOrder(order._id).subscribe(function (a) {
+            console.log('allvalues', a);
+            _this.orderitem = [];
+            for (var i = 0; i < a.OrderItemId.length; i++) {
+                _this.orderitem[i] = a.OrderItemId[i];
+            }
+            console.log('orderitems', _this.orderitem);
+            console.log('allvalues', a);
+            _this.OneOrder = a;
+            console.log(_this.OneOrder.CustomerId);
+            _this.OrderCustomer = _this.OneOrder.CustomerId;
+            console.log('customer', _this.OrderCustomer);
+            _this.orderFetched = true;
+            _this.OneOrder.DeliveryDate = new Date(_this.OneOrder.DeliveryDate * 1000);
+            _this.OneOrder.TryDate = new Date(_this.OneOrder.TryDate * 1000);
+            if (_this.OneOrder.OrderStatus == 100) {
+                _this.OneOrder.OrderStatus = _this.Pending;
+            }
+            else if (_this.OneOrder.OrderStatus == 200) {
+                _this.OneOrder.OrderStatus = _this.Cutting;
+            }
+            else if (_this.OneOrder.OrderStatus == 300) {
+                _this.OneOrder.OrderStatus = _this.Stiching;
+            }
+            else if (_this.OneOrder.OrderStatus == 400) {
+                _this.OneOrder.OrderStatus = _this.Readyatwarehouse;
+            }
+            else if (_this.OneOrder.OrderStatus == 500) {
+                _this.OneOrder.OrderStatus = _this.ReachedOutlet;
+            }
+            else {
+                _this.OneOrder.OrderStatus = _this.notavailable;
+            }
+        });
+    };
+    OrderdetailComponent.prototype.printhtml = function () {
+        var printContents, popupWin;
+        printContents = document.getElementById('Printt').innerHTML;
+        popupWin = window.open('', '_blank', 'top=0,left=0,height=100%,width=auto');
+        popupWin.document.open();
+        popupWin.document.write("\n      <html>\n        <head>\n          <title>Delivery Token</title>\n          <style>\n           \n       \n\n          </style>\n        </head>\n    <body style=\"margin-top:200px;margin-bottom:200px;\" onload=\"window.print();window.close()\">" + printContents + "</body>\n     \n    \n    </html>");
+        popupWin.document.close();
+    };
+    OrderdetailComponent.prototype.getSelectedStitcher = function (elem) {
+        var _this = this;
         this.StitcherId = elem;
         console.log(elem);
+        this._employeeService.getEmployees().subscribe(function (a) {
+            console.log('Alla employees', _this.allEmployees);
+            for (var i = 0; i < a.data.length; i++) {
+                if (a.data[i]._id == a.data[i].FullName)
+                    _this.allEmployees = a.data[i];
+            }
+            console.log('Employees data', _this.allEmployees);
+        });
+        this.Emp = this.allEmployees.find(function (x) { return x._id = elem; });
+        console.log('Employee name', this.Emp);
     };
-    userDataComponent.prototype.assignItems = function (orderItem) {
+    OrderdetailComponent.prototype.assignItems = function (orderItem) {
         var _this = this;
         this._orderService.AssignThisOrderItemToUser(orderItem._id, this.userObject._id, this.StitcherId, this.MasterId).subscribe(function (a) {
             if (a.code == 200) {
@@ -19987,11 +20148,11 @@ var userDataComponent = (function () {
             }
         });
     };
-    userDataComponent.prototype.getSelectedMaster = function (elem) {
+    OrderdetailComponent.prototype.getSelectedMaster = function (elem) {
         this.MasterId = elem;
         console.log(elem);
     };
-    userDataComponent.prototype.showToast = function () {
+    OrderdetailComponent.prototype.showToast = function () {
         // Get the snackbar DIV
         var x = document.getElementById("snackbar");
         // Add the "show" class to DIV
@@ -19999,7 +20160,7 @@ var userDataComponent = (function () {
         // After 3 seconds, remove the show class from DIV
         setTimeout(function () { x.className = x.className.replace("show", ""); }, 3000);
     };
-    userDataComponent.prototype.ngOnInit = function () {
+    OrderdetailComponent.prototype.ngOnInit = function () {
         this.OneOrder = new oneOrder_1.OneOrderModel();
         this.newOrder = new customerOrder_1.CustomerOrder();
         this.newOrderItem = new orderItem_1.OrderItem();
@@ -20007,25 +20168,25 @@ var userDataComponent = (function () {
         this.customerRefarances = [];
         this.productTypes = this._orderService.getProductTypes();
     };
-    userDataComponent = __decorate([
+    OrderdetailComponent = __decorate([
         core_1.Component({
-            selector: 'user-data-system',
-            template: __webpack_require__("./src/app/userData/userData.template.html"),
-            styles: [__webpack_require__("./src/app/userData/userData.style.scss")],
+            selector: 'order-detail',
+            template: __webpack_require__("./src/app/orderDetails/orderdetail.template.html"),
+            styles: [__webpack_require__("./src/app/orderDetails/orderdetail.style.scss")],
             providers: [order_Service_1.OrderService, customer_Service_1.CustomerService, employee_Service_1.EmployeeService]
         }), 
         __metadata('design:paramtypes', [(typeof (_a = typeof order_Service_1.OrderService !== 'undefined' && order_Service_1.OrderService) === 'function' && _a) || Object, (typeof (_b = typeof employee_Service_1.EmployeeService !== 'undefined' && employee_Service_1.EmployeeService) === 'function' && _b) || Object, (typeof (_c = typeof customer_Service_1.CustomerService !== 'undefined' && customer_Service_1.CustomerService) === 'function' && _c) || Object])
-    ], userDataComponent);
-    return userDataComponent;
+    ], OrderdetailComponent);
+    return OrderdetailComponent;
     var _a, _b, _c;
 }());
-exports.userDataComponent = userDataComponent;
+exports.OrderdetailComponent = OrderdetailComponent;
 
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__("./node_modules/jquery/dist/jquery.js")))
 
 /***/ },
 
-/***/ "./src/app/userData/userData.module.ts":
+/***/ "./src/app/orderDetails/orderdetail.module.ts":
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -20051,18 +20212,18 @@ __webpack_require__("./node_modules/jasny-bootstrap/docs/assets/js/vendor/holder
 __webpack_require__("./node_modules/jasny-bootstrap/js/fileinput.js");
 __webpack_require__("./node_modules/jasny-bootstrap/js/inputmask.js");
 var ng2_datetime_1 = __webpack_require__("./node_modules/ng2-datetime/ng2-datetime.ts");
-var userData_component_1 = __webpack_require__("./src/app/userData/userData.component.ts");
+var orderdetail_component_1 = __webpack_require__("./src/app/orderDetails/orderdetail.component.ts");
 exports.routes = [
-    { path: '', component: userData_component_1.userDataComponent, pathMatch: 'full' }
+    { path: '', component: orderdetail_component_1.OrderdetailComponent, pathMatch: 'full' }
 ];
-var orderDetailsItemsModule = (function () {
-    function orderDetailsItemsModule() {
+var OrderdetailModule = (function () {
+    function OrderdetailModule() {
     }
-    orderDetailsItemsModule.routes = exports.routes;
-    orderDetailsItemsModule = __decorate([
+    OrderdetailModule.routes = exports.routes;
+    OrderdetailModule = __decorate([
         core_1.NgModule({
             declarations: [
-                userData_component_1.userDataComponent
+                orderdetail_component_1.OrderdetailComponent
             ],
             imports: [
                 common_1.CommonModule,
@@ -20072,26 +20233,53 @@ var orderDetailsItemsModule = (function () {
             ]
         }), 
         __metadata('design:paramtypes', [])
-    ], orderDetailsItemsModule);
-    return orderDetailsItemsModule;
+    ], OrderdetailModule);
+    return OrderdetailModule;
 }());
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.default = orderDetailsItemsModule;
+exports.default = OrderdetailModule;
 
 
 /***/ },
 
-/***/ "./src/app/userData/userData.style.scss":
+/***/ "./src/app/orderDetails/orderdetail.style.scss":
 /***/ function(module, exports) {
 
-throw new Error("Module build failed: Error: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (57)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v3.9.3\n    at Object.<anonymous> (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\node-sass\\lib\\index.js:13:11)\n    at Module._compile (module.js:652:30)\n    at Object.Module._extensions..js (module.js:663:10)\n    at Module.load (module.js:565:32)\n    at tryModuleLoad (module.js:505:12)\n    at Function.Module._load (module.js:497:3)\n    at Module.require (module.js:596:17)\n    at require (internal/module.js:11:18)\n    at Object.<anonymous> (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\sass-loader\\index.js:4:12)\n    at Module._compile (module.js:652:30)\n    at Object.Module._extensions..js (module.js:663:10)\n    at Module.load (module.js:565:32)\n    at tryModuleLoad (module.js:505:12)\n    at Function.Module._load (module.js:497:3)\n    at Module.require (module.js:596:17)\n    at require (internal/module.js:11:18)\n    at loadLoader (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\loadLoader.js:13:17)\n    at iteratePitchingLoaders (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\LoaderRunner.js:169:2)\n    at iteratePitchingLoaders (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\LoaderRunner.js:165:10)\n    at D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\LoaderRunner.js:173:18\n    at loadLoader (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\loadLoader.js:36:3)\n    at iteratePitchingLoaders (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\LoaderRunner.js:169:2)\n    at runLoaders (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\LoaderRunner.js:362:2)\n    at NormalModule.doBuild (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\NormalModule.js:125:2)\n    at NormalModule.build (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\NormalModule.js:173:15)\n    at Compilation.buildModule (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\Compilation.js:127:9)\n    at D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\Compilation.js:303:10\n    at D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\NormalModuleFactory.js:63:13\n    at NormalModuleFactory.applyPluginsAsyncWaterfall (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\tapable\\lib\\Tapable.js:260:70)\n    at onDoneResolving (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\NormalModuleFactory.js:38:11)");
+throw new Error("Module build failed: Error: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (57)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v3.9.3\n    at Object.<anonymous> (C:\\Users\\shk\\Desktop\\New folder\\node_modules\\node-sass\\lib\\index.js:13:11)\n    at Module._compile (module.js:643:30)\n    at Object.Module._extensions..js (module.js:654:10)\n    at Module.load (module.js:556:32)\n    at tryModuleLoad (module.js:499:12)\n    at Function.Module._load (module.js:491:3)\n    at Module.require (module.js:587:17)\n    at require (internal/module.js:11:18)\n    at Object.<anonymous> (C:\\Users\\shk\\Desktop\\New folder\\node_modules\\sass-loader\\index.js:4:12)\n    at Module._compile (module.js:643:30)\n    at Object.Module._extensions..js (module.js:654:10)\n    at Module.load (module.js:556:32)\n    at tryModuleLoad (module.js:499:12)\n    at Function.Module._load (module.js:491:3)\n    at Module.require (module.js:587:17)\n    at require (internal/module.js:11:18)\n    at loadLoader (C:\\Users\\shk\\Desktop\\New folder\\node_modules\\loader-runner\\lib\\loadLoader.js:13:17)\n    at iteratePitchingLoaders (C:\\Users\\shk\\Desktop\\New folder\\node_modules\\loader-runner\\lib\\LoaderRunner.js:169:2)\n    at iteratePitchingLoaders (C:\\Users\\shk\\Desktop\\New folder\\node_modules\\loader-runner\\lib\\LoaderRunner.js:165:10)\n    at C:\\Users\\shk\\Desktop\\New folder\\node_modules\\loader-runner\\lib\\LoaderRunner.js:173:18\n    at loadLoader (C:\\Users\\shk\\Desktop\\New folder\\node_modules\\loader-runner\\lib\\loadLoader.js:36:3)\n    at iteratePitchingLoaders (C:\\Users\\shk\\Desktop\\New folder\\node_modules\\loader-runner\\lib\\LoaderRunner.js:169:2)\n    at runLoaders (C:\\Users\\shk\\Desktop\\New folder\\node_modules\\loader-runner\\lib\\LoaderRunner.js:362:2)\n    at NormalModule.doBuild (C:\\Users\\shk\\Desktop\\New folder\\node_modules\\webpack\\lib\\NormalModule.js:125:2)\n    at NormalModule.build (C:\\Users\\shk\\Desktop\\New folder\\node_modules\\webpack\\lib\\NormalModule.js:173:15)\n    at Compilation.buildModule (C:\\Users\\shk\\Desktop\\New folder\\node_modules\\webpack\\lib\\Compilation.js:127:9)\n    at C:\\Users\\shk\\Desktop\\New folder\\node_modules\\webpack\\lib\\Compilation.js:303:10\n    at C:\\Users\\shk\\Desktop\\New folder\\node_modules\\webpack\\lib\\NormalModuleFactory.js:63:13\n    at NormalModuleFactory.applyPluginsAsyncWaterfall (C:\\Users\\shk\\Desktop\\New folder\\node_modules\\tapable\\lib\\Tapable.js:260:70)\n    at onDoneResolving (C:\\Users\\shk\\Desktop\\New folder\\node_modules\\webpack\\lib\\NormalModuleFactory.js:38:11)");
 
 /***/ },
 
-/***/ "./src/app/userData/userData.template.html":
+/***/ "./src/app/orderDetails/orderdetail.template.html":
 /***/ function(module, exports) {
 
-module.exports = "<h1>Add User Form</h1>\r\n<div id=\"snackbar\"></div>\r\n\r\n<div class=\"container\">\r\n\r\n  <div class=\"row\">\r\n    <div class=\"col-md-6 col-lg-6 col-sm-6 offset-lg-3 offset-md-3 offset-sm-3 common-form\">\r\n      <div class=\"form-group\">\r\n        <select class=\"selectType\" (change)=\"getCustomerId($event.target.value)\">\r\n          <option disabled selected>Select User</option>\r\n          <option *ngFor=\"let user of allEmployees\" value=\"{{user._id}}\">{{user.FullName}}</option>\r\n        </select>\r\n      </div>\r\n      <div class=\"form-group\">\r\n\r\n        <label for=\"normal-field\" class=\"col-form-label\">Enter User Name</label>\r\n\r\n        <input type=\"text\" [(ngModel)]=\"Name\" id=\"enter\" class=\"form-control enter custom-inputs\" placeholder=\"Please Enter Name\">\r\n      </div>\r\n      <div class=\"form-group\">\r\n\r\n        <label for=\"normal-field\" class=\"col-form-label\">Enter Password</label>\r\n\r\n        <input type=\"password\" id=\"enter1\" [(ngModel)]=\"Password\" class=\"form-control enter custom-inputs\" placeholder=\"Please Enter Password\">\r\n\r\n      </div>\r\n      <div class=\"form-group\">\r\n        <button (click)=\"addUser()\" class=\"addbtn btn-primary\">Add</button>\r\n      </div>\r\n\r\n\r\n\r\n\r\n\r\n\r\n    </div>\r\n  </div>\r\n\r\n  <div class=\"row row-2\">\r\n\r\n\r\n  </div>\r\n</div>"
+module.exports = "<div class=\"container\" *ngIf=\"orderform\">\r\n  <h1>Update OrderForm</h1>\r\n  <div class=\"row\">\r\n\r\n    <div class=\"col-md-6 col-lg-6 col-sm-6 col-xs-12 offset-md-3 offset-lg-3 offset-sm-3\">\r\n      <!-- \r\n      <div class=\"form-group\">\r\n        <label for=\"normal-field\" class=\"col-form-label\">Enter Order Special Instructions</label>\r\n       \r\n          <textarea [(ngModel)]=\"order.SpecialInstructions\" id=\"normal-field\" class=\"form-control custom-inputs\" placeholder=\"Please EnterSpecial Instructions\"></textarea>\r\n     \r\n      </div>   -->\r\n \r\n\r\n      <div class=\"form-group\">\r\n        <label for=\"normal-field\" class=\"col-form-label\">Enter Try Date</label>\r\n\r\n        <input type=\"text\" [(ngModel)]=\"b\" id=\"normal-field\" class=\"form-control custom-inputs\" placeholder=\"Please Enter Product Name\">\r\n\r\n      </div>\r\n\r\n      <div class=\"form-group\">\r\n        <label for=\"normal-field\" class=\"col-form-label\">Enter Delivery Date</label>\r\n\r\n        <input type=\"text\" [(ngModel)]=\"a\" id=\"normal-field\" class=\"form-control custom-inputs\" placeholder=\"Please Enter Product Name\">\r\n\r\n      </div>\r\n \r\n      <div class=\"form-group\">\r\n        <label for=\"normal-field\" class=\"col-form-label\">Enter Special Instructions</label>\r\n\r\n        <textarea [(ngModel)]=\"_SingleGetOrderitemModel.SpecialInstructions\" id=\"normal-field\" class=\"form-control custom-inputs\" placeholder=\"Please Enter Special Instructions\"></textarea>\r\n\r\n      </div>\r\n\r\n     \r\n      <div class=\"form-group\">\r\n          <label for=\"normal-field\" class=\"col-form-label\">Order Status</label>\r\n  \r\n          <input type=\"text\" [(ngModel)]=\"_SingleGetOrderitemModel.OrderStatus\" id=\"normal-field\" class=\"form-control custom-inputs\" placeholder=\"\">\r\n  \r\n        </div>\r\n      <div class=\"form-group\">\r\n        <label for=\"normal-field\" class=\"col-form-label\">Your Balance</label>\r\n\r\n        <input type=\"text\" [(ngModel)]=\"_SingleGetOrderitemModel.RemainingAmount\" id=\"normal-field\" class=\"form-control custom-inputs\" placeholder=\"\">\r\n\r\n      </div>\r\n      \r\n      <button (click)=\"addOrder(_SingleGetOrderitemModel)\" class=\"btn btn-primary add-btn\">Add Order</button>\r\n\r\n    </div>\r\n\r\n\r\n  </div>\r\n</div>\r\n\r\n<div id=\"snackbar\"></div>\r\n\r\n<div class=\"row\" *ngIf=\"Updateform\">\r\n\r\n\r\n\r\n  <div class=\"col-md-12 col-lg-12 col-sm-12 col-xs-12\">\r\n\r\n\r\n    <select class=\"selectType\" (change)=\"getOrdersByStatus($event.target.value)\">\r\n      <option disabled selected>Select Status</option>\r\n      <option value=\"100\">Advance Paid</option>\r\n      <option value=\"200\">Receieved for Delivery</option>\r\n      <option value=\"300\">Delivered and Paid</option>\r\n      <option value=\"400\">Deleivered but Not Paid</option>\r\n    </select>\r\n\r\n\r\n    <div class=\"table-responsive\">\r\n      <table class=\"table table-bordered table-striped\">\r\n        <thead>\r\n          <tr>\r\n            <th>#</th>\r\n            <th>Customer Name</th>\r\n            <th>Contact Number</th>\r\n            <th>Try Date</th>\r\n            <th>Delivery Date</th>\r\n            <th *ngIf=\"this.IsAdmin\">Order Total</th>\r\n            <th>Change Status</th>\r\n            <th>View</th>\r\n            <th>Update</th>\r\n            <th>Print</th>\r\n          </tr>\r\n        </thead>\r\n        <tbody>\r\n          <tr *ngFor=\"let order of ordersList;let i=index\">\r\n\r\n            <td>{{i}}</td>\r\n            <td>{{order.CustomerId.FullName}}</td>\r\n            <td>{{order.CustomerId.ContactNumber}}</td>\r\n            <td>{{order.TryDate}}\r\n              <td>{{order.DeliveryDate}}</td>\r\n              <td *ngIf=\"this.IsAdmin\">{{order.OrderTotal}}</td>\r\n\r\n              <td>\r\n                <select class=\"selectType\" (change)=\"setOrderStatus($event.target.value,order)\">\r\n                  <option disabled selected>Select Status</option>\r\n                  <option value=\"100\">Advance Paid</option>\r\n                  <option value=\"200\">Recieved for Delivery</option>\r\n                  <option value=\"300\">Delivered and Paid</option>\r\n                  <option value=\"400\">Deleivered but Not Paid</option>\r\n                </select>\r\n              </td>\r\n              <td>\r\n                <button class=\"btn btn-primary view\" (click)=\"viewThisOrder(order)\">View</button>\r\n              </td>\r\n              <td>\r\n                <button class=\"btn btn-primary view\" (click)=\"UpdateOrder(order)\">Update</button>\r\n              </td>\r\n              <td>\r\n                <button class=\"btn btn-primary view\" (click)=\"Print(order)\">PrintView</button>\r\n              </td>\r\n          </tr>\r\n        </tbody>\r\n      </table>\r\n    </div>\r\n\r\n\r\n  </div>\r\n\r\n  <div class=\"col-md-8 col-lg-8 col-sm-8 offset-lg-2 offset-md-2 offset-sm-2 col-xs-12\">\r\n\r\n\r\n    <div *ngIf=\"orderFetched\" class=\"order-detail\">\r\n\r\n\r\n      <h1 class=\"detail-heading\">Order Detail</h1>\r\n\r\n\r\n      <p class=\"heading\">Name :\r\n        <span class=\"value\">{{OneOrder.CustomerId.FullName}}</span>\r\n      </p>\r\n\r\n      <p class=\"heading\">Contact Number :\r\n        <span class=\"value\">{{OneOrder.CustomerId.ContactNumber}}</span>\r\n      </p>\r\n\r\n      <p class=\"heading\">Email :\r\n        <span class=\"value\">{{OneOrder.CustomerId.Email}}</span>\r\n      </p>\r\n\r\n      <p class=\"heading\">Delivery Date :\r\n        <span class=\"value\">{{OneOrder.DeliveryDate}}</span>\r\n      </p>\r\n\r\n      <p class=\"heading\">Try Date :\r\n        <span class=\"value\">{{OneOrder.TryDate}}</span>\r\n      </p>\r\n\r\n      <p class=\"heading\" *ngIf=\"this.IsAdmin\">Order Total :\r\n        <span class=\"value\">{{OneOrder.OrderTotal}}</span>\r\n      </p>\r\n\r\n      <p class=\"heading\" *ngIf=\"this.IsAdmin\">Advance Received :\r\n        <span class=\"value\">{{OneOrder.AdvanceReceived}}</span>\r\n      </p>\r\n\r\n      <p class=\"heading\">Special Instructions:\r\n        <span class=\"value\">{{OneOrder.SpecialInstructions}}</span>\r\n      </p>\r\n\r\n\r\n\r\n      <div class=\"table-responsive\">\r\n        <table class=\"table table-bordered\">\r\n          <thead>\r\n            <tr>\r\n              <th>#</th>\r\n              <th>Product Name</th>\r\n              <th>Quantity</th>\r\n              <th *ngIf=\"this.IsAdmin\">Price</th>\r\n              <th>Special Instructions</th>\r\n              <th>Stitcher</th>\r\n              <th>Master</th>\r\n              <th>Action</th>\r\n              <th>Stitcher Name</th>\r\n              <th>Master Name</th>\r\n              \r\n            </tr>\r\n          </thead>\r\n          <tbody>\r\n            <tr *ngFor=\"let orderitem of OneOrder.OrderItemId;let i=index\">\r\n              <td>{{i}}</td>\r\n              <td>{{orderitem.ProductName}}</td>\r\n              <td>{{orderitem.Quantity}}</td>\r\n              <td *ngIf=\"this.IsAdmin\">{{orderitem.Price}}</td>\r\n              <td>{{orderitem.SpecialInstructions}}</td>\r\n              <td>\r\n                <select class=\"selectType\" (change)=\"getSelectedStitcher($event.target.value)\">\r\n                  <option disabled selected>Select User</option>\r\n                  <option *ngFor=\"let user of allEmployees\" value=\"{{user._id}}\">{{user.FullName}}</option>\r\n                </select>\r\n              </td>\r\n\r\n\r\n              <td>\r\n                <select class=\"selectType\" (change)=\"getSelectedMaster($event.target.value)\">\r\n                  <option disabled selected>Select User</option>\r\n                  <option *ngFor=\"let user of allEmployees\" value=\"{{user._id}}\">{{user.FullName}}</option>\r\n                </select>\r\n              </td>\r\n\r\n              <td>\r\n                <button class=\"btn btn-info\" (click)='assignItems(orderitem)'>Assign</button>\r\n              </td>\r\n\r\n           \r\n            </tr>\r\n            <tr>\r\n\r\n            </tr>\r\n\r\n          </tbody>\r\n        </table>\r\n      </div>\r\n\r\n\r\n    </div>\r\n\r\n\r\n  </div>\r\n\r\n\r\n</div>\r\n\r\n\r\n\r\n<!-- print form-->\r\n<div id=\"Printt111\" *ngIf=\"Printform\">\r\n <div id=\"Printt\">\r\n  <h1>Print Order</h1>\r\n  <div class=\"row\">\r\n\r\n    <div class=\"col-md-6 col-lg-6 col-sm-6 col-xs-12 offset-md-3 offset-lg-3 offset-sm-3\">\r\n      <div class=\"form-group\">\r\n        <label for=\"normal-field\" class=\"col-form-label\"> Special Instructions</label>\r\n\r\n        <label class=\"tablename\"> {{OneOrder.SpecialInstructions}} </label>\r\n      </div>\r\n      <div class=\"form-group\">\r\n        <label  for=\"datetimepicker2i\">\r\n          Try Date\r\n        </label>\r\n        <label class=\"tablename\"> {{OneOrder.TryDate}}</label>\r\n      </div>\r\n\r\n\r\n\r\n      <div class=\"form-group\">\r\n        <label  for=\"datetimepicker2i\">\r\n          Delivery Date\r\n        </label>\r\n        <label class=\"tablename\"> {{OneOrder.DeliveryDate}}</label>\r\n      </div>\r\n\r\n\r\n\r\n      <div class=\"form-group\">\r\n        <label for=\"normal-field\" class=\"col-form-label\">Status</label>\r\n\r\n       <label class=\"tablename\"> {{OneOrder.OrderStatus}}</label>\r\n      </div>\r\n\r\n      <div class=\"table-responsive\">\r\n       <table class=\"table table-bordered\">\r\n          <thead>\r\n            <tr>\r\n              <th>#</th>\r\n              <th>Product Name</th>\r\n              <th>Quantity</th>\r\n              <th *ngIf=\"this.IsAdmin\">Price</th>\r\n              <th>Special Instructions</th>\r\n             \r\n\r\n            </tr>\r\n          </thead>\r\n          <tbody>\r\n            <tr *ngFor=\"let order of orderitem\">\r\n              <td>{{i}}</td>\r\n              <td>{{order.ProductName}}</td>\r\n              <td>{{order.Quantity}}</td>\r\n              <td *ngIf=\"this.IsAdmin\">{{order.Price}}</td>\r\n              <td>{{order.SpecialInstructions}}</td>\r\n               </tr>\r\n            <tr>\r\n\r\n            </tr>\r\n\r\n          </tbody>\r\n        </table>\r\n      </div>\r\n\r\n    </div>\r\n\r\n\r\n  </div>\r\n</div>\r\n\r\n</div>\r\n    <button  *ngIf=\"printbtn\" class=\"btn printbtnn btn-info\" (click)='printhtml()'>Print</button>            \r\n  "
+
+/***/ },
+
+/***/ "./src/models/GetOrderitemModel.ts":
+/***/ function(module, exports) {
+
+"use strict";
+"use strict";
+var GetOrderitemModel = (function () {
+    function GetOrderitemModel() {
+    }
+    return GetOrderitemModel;
+}());
+exports.GetOrderitemModel = GetOrderitemModel;
+var OrderItemId = (function () {
+    function OrderItemId() {
+    }
+    return OrderItemId;
+}());
+exports.OrderItemId = OrderItemId;
+var CustomerId = (function () {
+    function CustomerId() {
+    }
+    return CustomerId;
+}());
+exports.CustomerId = CustomerId;
+
 
 /***/ },
 
