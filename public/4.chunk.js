@@ -13548,145 +13548,6 @@ API.txt for details.
 
 /***/ },
 
-/***/ "./node_modules/jquery.flot.animator/jquery.flot.animator.js":
-/***/ function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function($) {/* jQuery Flot Animator version 1.0.
-
-Flot Animator is a free jQuery Plugin that will add fluid animations to Flot charts.
-
-Copyright (c) 2012-2013 Chtiwi Malek
-http://www.codicode.com/art/jquery_flot_animator.aspx
-
-Licensed under Creative Commons Attribution 3.0 Unported License.
-*/
-
-$.extend({
-  plotAnimator: function (chart, data,g){
-    
-    var serie = 0;
-    for (var i = 0; i < data.length; i++)
-    {
-      if (data[i].animator)
-      {
-        serie = i;
-      }
-    }
-    
-    function pInit(arr){
-	  var x = [];
-      x.push([arr[0][0], Math.max.apply(Math, arr.map(function(i) { return i[1];}))]);
-      x.push([arr[0][0], null]);
-      x.push([arr[0][0], Math.min.apply(Math, arr.map(function(i) { return i[1];}))]);
-      for(var i = 0; i < arr.length; i++) {
-          x.push([arr[i][0], null]);
-      }
-      data[serie].data = x;
-      return $.plot(chart, data, g);
-    }
-    
-    var d0 = data[serie];
-    var oData = d0.data;
-    
-    var plot = pInit(oData);
-    
-    var isLines = (data[serie].lines)?true:false;
-    var steps = (data[serie].animator && data[serie].animator.steps) || 135;
-    var duration = (data[serie].animator && data[serie].animator.duration) || 1000;
-    var start = (data[serie].animator && data[serie].animator.start) || 0;
-    var dir = (data[serie].animator && data[serie].animator.direction) || "right";
-    function stepData()
-    {
-      var Si = oData[0][0];
-      var Fi = oData[oData.length-1][0];
-      var Pas = (Fi-Si)/steps;
-      
-      var d2 = [];      
-      d2.push(oData[0]);
-      var nPointPos = 1;
-      lPoint = oData[0];
-      nPoint = oData[nPointPos];
-      for (var i = Si+Pas; i < Fi+Pas; i += Pas)
-      {
-        if (i>Fi) {i=Fi;}
-        $("#m2").html(i);
-        while (i > nPoint[0])
-        {
-          lPoint = nPoint;
-          nPoint = oData[nPointPos++];
-        }
-        if (i == nPoint[0])
-        {
-          d2.push([i,nPoint[1]]);
-          lPoint = nPoint;
-          nPoint = oData[nPointPos++];
-        }
-        else
-        {
-          var a = ((nPoint[1]-lPoint[1]) / ((nPoint[0]-lPoint[0])));
-          curV = (a * i) + (lPoint[1] - (a * lPoint[0]));
-          d2.push([i,curV]);
-        }
-      }
-      return d2;
-    }
-    
-    var step=0;
-    var sData = stepData();
-    function plotData()
-    {
-      var d3=[];
-      step++;
-      
-      switch(dir)
-      {
-        case 'right':
-          d3 = sData.slice(0, step);
-          break;
-        case 'left':
-          d3 = sData.slice(-1*step);
-          break
-          case 'center':
-          d3 = sData.slice((sData.length/2)-(step/2),(sData.length/2)+(step/2));
-          break;
-      }
-      
-      if (!isLines)
-      {
-        inV = d3[0][0];
-      	laV = d3[d3.length-1][0];
-        d3=[];
-        for (var i = 0; i < oData.length; i++)
-      	{
-          if (oData[i][0]>=inV && oData[i][0]<=laV)
-          {
-            d3.push(oData[i]);
-          }
-      	}
-      }
-      
-      data[serie].data = (step<steps)?d3:oData;
-      plot.setData(data);
-      plot.draw();
-      if (step<steps)
-      {
-        setTimeout(plotData, duration/steps);
-      }
-      else
-      {
-        chart.trigger( "animatorComplete" );
-      }
-    }
-    
-    setTimeout(plotData,start);
-    return plot;
-  }
-});
-
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__("./node_modules/jquery/dist/jquery.js")))
-
-/***/ },
-
 /***/ "./node_modules/morris.js/morris.js":
 /***/ function(module, exports, __webpack_require__) {
 
@@ -34769,7 +34630,7 @@ exports.default = ChartsModule;
 /***/ "./src/app/charts/charts.style.scss":
 /***/ function(module, exports) {
 
-module.exports = ".rickshaw_graph .detail {\n  pointer-events: none;\n  position: absolute;\n  top: 0;\n  z-index: 2;\n  background: rgba(0, 0, 0, 0.1);\n  bottom: 0;\n  width: 1px;\n  transition: opacity 0.25s linear;\n  -moz-transition: opacity 0.25s linear;\n  -o-transition: opacity 0.25s linear;\n  -webkit-transition: opacity 0.25s linear; }\n\n.rickshaw_graph .detail.inactive {\n  opacity: 0; }\n\n.rickshaw_graph .detail .item.active {\n  opacity: 1; }\n\n.rickshaw_graph .detail .x_label {\n  font-family: Arial, sans-serif;\n  border-radius: 3px;\n  padding: 6px;\n  opacity: 0.5;\n  border: 1px solid #e0e0e0;\n  font-size: 12px;\n  position: absolute;\n  background: white;\n  white-space: nowrap; }\n\n.rickshaw_graph .detail .x_label.left {\n  left: 0; }\n\n.rickshaw_graph .detail .x_label.right {\n  right: 0; }\n\n.rickshaw_graph .detail .item {\n  position: absolute;\n  z-index: 2;\n  border-radius: 3px;\n  padding: 0.25em;\n  font-size: 12px;\n  font-family: Arial, sans-serif;\n  opacity: 0;\n  background: rgba(0, 0, 0, 0.4);\n  color: white;\n  border: 1px solid rgba(0, 0, 0, 0.4);\n  margin-left: 1em;\n  margin-right: 1em;\n  margin-top: -1em;\n  white-space: nowrap; }\n\n.rickshaw_graph .detail .item.left {\n  left: 0; }\n\n.rickshaw_graph .detail .item.right {\n  right: 0; }\n\n.rickshaw_graph .detail .item.active {\n  opacity: 1;\n  background: rgba(0, 0, 0, 0.8); }\n\n.rickshaw_graph .detail .item:after {\n  position: absolute;\n  display: block;\n  width: 0;\n  height: 0;\n  content: \"\";\n  border: 5px solid transparent; }\n\n.rickshaw_graph .detail .item.left:after {\n  top: 1em;\n  left: -5px;\n  margin-top: -5px;\n  border-right-color: rgba(0, 0, 0, 0.8);\n  border-left-width: 0; }\n\n.rickshaw_graph .detail .item.right:after {\n  top: 1em;\n  right: -5px;\n  margin-top: -5px;\n  border-left-color: rgba(0, 0, 0, 0.8);\n  border-right-width: 0; }\n\n.rickshaw_graph .detail .dot {\n  width: 4px;\n  height: 4px;\n  margin-left: -3px;\n  margin-top: -3.5px;\n  border-radius: 5px;\n  position: absolute;\n  box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);\n  box-sizing: content-box;\n  -moz-box-sizing: content-box;\n  background: white;\n  border-width: 2px;\n  border-style: solid;\n  display: none;\n  background-clip: padding-box; }\n\n.rickshaw_graph .detail .dot.active {\n  display: block; }\n\n/* graph */\n.rickshaw_graph {\n  position: relative; }\n\n.rickshaw_graph svg {\n  display: block;\n  overflow: hidden; }\n\n/* ticks */\n.rickshaw_graph .x_tick {\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  width: 0px;\n  border-left: 1px dotted rgba(0, 0, 0, 0.2);\n  pointer-events: none; }\n\n.rickshaw_graph .x_tick .title {\n  position: absolute;\n  font-size: 12px;\n  font-family: Arial, sans-serif;\n  opacity: 0.5;\n  white-space: nowrap;\n  margin-left: 3px;\n  bottom: 1px; }\n\n/* annotations */\n.rickshaw_annotation_timeline {\n  height: 1px;\n  border-top: 1px solid #e0e0e0;\n  margin-top: 10px;\n  position: relative; }\n\n.rickshaw_annotation_timeline .annotation {\n  position: absolute;\n  height: 6px;\n  width: 6px;\n  margin-left: -2px;\n  top: -3px;\n  border-radius: 5px;\n  background-color: rgba(0, 0, 0, 0.25); }\n\n.rickshaw_graph .annotation_line {\n  position: absolute;\n  top: 0;\n  bottom: -6px;\n  width: 0px;\n  border-left: 2px solid rgba(0, 0, 0, 0.3);\n  display: none; }\n\n.rickshaw_graph .annotation_line.active {\n  display: block; }\n\n.rickshaw_graph .annotation_range {\n  background: rgba(0, 0, 0, 0.1);\n  display: none;\n  position: absolute;\n  top: 0;\n  bottom: -6px; }\n\n.rickshaw_graph .annotation_range.active {\n  display: block; }\n\n.rickshaw_graph .annotation_range.active.offscreen {\n  display: none; }\n\n.rickshaw_annotation_timeline .annotation .content {\n  background: white;\n  color: black;\n  opacity: 0.9;\n  padding: 5px 5px;\n  box-shadow: 0 0 2px rgba(0, 0, 0, 0.8);\n  border-radius: 3px;\n  position: relative;\n  z-index: 20;\n  font-size: 12px;\n  padding: 6px 8px 8px;\n  top: 18px;\n  left: -11px;\n  width: 160px;\n  display: none;\n  cursor: pointer; }\n\n.rickshaw_annotation_timeline .annotation .content:before {\n  content: \"\\25b2\";\n  position: absolute;\n  top: -11px;\n  color: white;\n  text-shadow: 0 -1px 1px rgba(0, 0, 0, 0.8); }\n\n.rickshaw_annotation_timeline .annotation.active,\n.rickshaw_annotation_timeline .annotation:hover {\n  background-color: rgba(0, 0, 0, 0.8);\n  cursor: none; }\n\n.rickshaw_annotation_timeline .annotation .content:hover {\n  z-index: 50; }\n\n.rickshaw_annotation_timeline .annotation.active .content {\n  display: block; }\n\n.rickshaw_annotation_timeline .annotation:hover .content {\n  display: block;\n  z-index: 50; }\n\n.rickshaw_graph .y_axis,\n.rickshaw_graph .x_axis_d3 {\n  fill: none; }\n\n.rickshaw_graph .y_ticks .tick line,\n.rickshaw_graph .x_ticks_d3 .tick {\n  stroke: rgba(0, 0, 0, 0.16);\n  stroke-width: 2px;\n  shape-rendering: crisp-edges;\n  pointer-events: none; }\n\n.rickshaw_graph .y_grid .tick,\n.rickshaw_graph .x_grid_d3 .tick {\n  z-index: -1;\n  stroke: rgba(0, 0, 0, 0.2);\n  stroke-width: 1px;\n  stroke-dasharray: 1 1; }\n\n.rickshaw_graph .y_grid .tick[data-y-value=\"0\"] {\n  stroke-dasharray: 1 0; }\n\n.rickshaw_graph .y_grid path,\n.rickshaw_graph .x_grid_d3 path {\n  fill: none;\n  stroke: none; }\n\n.rickshaw_graph .y_ticks path,\n.rickshaw_graph .x_ticks_d3 path {\n  fill: none;\n  stroke: #808080; }\n\n.rickshaw_graph .y_ticks text,\n.rickshaw_graph .x_ticks_d3 text {\n  opacity: 0.5;\n  font-size: 12px;\n  pointer-events: none; }\n\n.rickshaw_graph .x_tick.glow .title,\n.rickshaw_graph .y_ticks.glow text {\n  fill: black;\n  color: black;\n  text-shadow: -1px 1px 0 rgba(255, 255, 255, 0.1), 1px -1px 0 rgba(255, 255, 255, 0.1), 1px 1px 0 rgba(255, 255, 255, 0.1), 0px 1px 0 rgba(255, 255, 255, 0.1), 0px -1px 0 rgba(255, 255, 255, 0.1), 1px 0px 0 rgba(255, 255, 255, 0.1), -1px 0px 0 rgba(255, 255, 255, 0.1), -1px -1px 0 rgba(255, 255, 255, 0.1); }\n\n.rickshaw_graph .x_tick.inverse .title,\n.rickshaw_graph .y_ticks.inverse text {\n  fill: white;\n  color: white;\n  text-shadow: -1px 1px 0 rgba(0, 0, 0, 0.8), 1px -1px 0 rgba(0, 0, 0, 0.8), 1px 1px 0 rgba(0, 0, 0, 0.8), 0px 1px 0 rgba(0, 0, 0, 0.8), 0px -1px 0 rgba(0, 0, 0, 0.8), 1px 0px 0 rgba(0, 0, 0, 0.8), -1px 0px 0 rgba(0, 0, 0, 0.8), -1px -1px 0 rgba(0, 0, 0, 0.8); }\n\n.rickshaw_legend {\n  font-family: Arial;\n  font-size: 12px;\n  color: white;\n  background: #404040;\n  display: inline-block;\n  padding: 12px 5px;\n  border-radius: 2px;\n  position: relative; }\n\n.rickshaw_legend:hover {\n  z-index: 10; }\n\n.rickshaw_legend .swatch {\n  width: 10px;\n  height: 10px;\n  border: 1px solid rgba(0, 0, 0, 0.2); }\n\n.rickshaw_legend .line {\n  clear: both;\n  line-height: 140%;\n  padding-right: 15px; }\n\n.rickshaw_legend .line .swatch {\n  display: inline-block;\n  margin-right: 3px;\n  border-radius: 2px; }\n\n.rickshaw_legend .label {\n  margin: 0;\n  white-space: nowrap;\n  display: inline;\n  font-size: inherit;\n  background-color: transparent;\n  color: inherit;\n  font-weight: normal;\n  line-height: normal;\n  padding: 0px;\n  text-shadow: none; }\n\n.rickshaw_legend .action:hover {\n  opacity: 0.6; }\n\n.rickshaw_legend .action {\n  margin-right: 0.2em;\n  font-size: 10px;\n  opacity: 0.2;\n  cursor: pointer;\n  font-size: 14px; }\n\n.rickshaw_legend .line.disabled {\n  opacity: 0.4; }\n\n.rickshaw_legend ul {\n  list-style-type: none;\n  margin: 0;\n  padding: 0;\n  margin: 2px;\n  cursor: pointer; }\n\n.rickshaw_legend li {\n  padding: 0 0 0 2px;\n  min-width: 80px;\n  white-space: nowrap; }\n\n.rickshaw_legend li:hover {\n  background: rgba(255, 255, 255, 0.08);\n  border-radius: 3px; }\n\n.rickshaw_legend li:active {\n  background: rgba(255, 255, 255, 0.2);\n  border-radius: 3px; }\n\n.morris-hover {\n  position: absolute;\n  z-index: 1000; }\n\n.morris-hover.morris-default-style {\n  border-radius: 10px;\n  padding: 6px;\n  color: #666;\n  background: rgba(255, 255, 255, 0.8);\n  border: solid 2px rgba(230, 230, 230, 0.8);\n  font-family: sans-serif;\n  font-size: 12px;\n  text-align: center; }\n\n.morris-hover.morris-default-style .morris-hover-row-label {\n  font-weight: bold;\n  margin: 0.25em 0; }\n\n.morris-hover.morris-default-style .morris-hover-point {\n  white-space: nowrap;\n  margin: 0.1em 0; }\n\n/* nvd3 version 1.8.4 (https://github.com/novus/nvd3) 2016-07-03 */\n.nvd3 .nv-axis {\n  pointer-events: none;\n  opacity: 1; }\n\n.nvd3 .nv-axis path {\n  fill: none;\n  stroke: #000;\n  stroke-opacity: .75;\n  shape-rendering: crispEdges; }\n\n.nvd3 .nv-axis path.domain {\n  stroke-opacity: .75; }\n\n.nvd3 .nv-axis.nv-x path.domain {\n  stroke-opacity: 0; }\n\n.nvd3 .nv-axis line {\n  fill: none;\n  stroke: #e5e5e5;\n  shape-rendering: crispEdges; }\n\n.nvd3 .nv-axis .zero line,\n.nvd3 .nv-axis line.zero {\n  stroke-opacity: .75; }\n\n.nvd3 .nv-axis .nv-axisMaxMin text {\n  font-weight: bold; }\n\n.nvd3 .x .nv-axis .nv-axisMaxMin text,\n.nvd3 .x2 .nv-axis .nv-axisMaxMin text,\n.nvd3 .x3 .nv-axis .nv-axisMaxMin text {\n  text-anchor: middle; }\n\n.nvd3 .nv-axis.nv-disabled {\n  opacity: 0; }\n\n.nvd3 .nv-bars rect {\n  fill-opacity: .75;\n  transition: fill-opacity 250ms linear;\n  -moz-transition: fill-opacity 250ms linear;\n  -webkit-transition: fill-opacity 250ms linear; }\n\n.nvd3 .nv-bars rect.hover {\n  fill-opacity: 1; }\n\n.nvd3 .nv-bars .hover rect {\n  fill: lightblue; }\n\n.nvd3 .nv-bars text {\n  fill: transparent; }\n\n.nvd3 .nv-bars .hover text {\n  fill: black; }\n\n.nvd3 .nv-multibar .nv-groups rect,\n.nvd3 .nv-multibarHorizontal .nv-groups rect,\n.nvd3 .nv-discretebar .nv-groups rect {\n  stroke-opacity: 0;\n  transition: fill-opacity 250ms linear;\n  -moz-transition: fill-opacity 250ms linear;\n  -webkit-transition: fill-opacity 250ms linear; }\n\n.nvd3 .nv-multibar .nv-groups rect:hover,\n.nvd3 .nv-multibarHorizontal .nv-groups rect:hover,\n.nvd3 .nv-candlestickBar .nv-ticks rect:hover,\n.nvd3 .nv-discretebar .nv-groups rect:hover {\n  fill-opacity: 1; }\n\n.nvd3 .nv-discretebar .nv-groups text,\n.nvd3 .nv-multibarHorizontal .nv-groups text {\n  font-weight: bold;\n  fill: black;\n  stroke: transparent; }\n\n/* boxplot CSS */\n.nvd3 .nv-boxplot circle {\n  fill-opacity: 0.5; }\n\n.nvd3 .nv-boxplot circle:hover {\n  fill-opacity: 1; }\n\n.nvd3 .nv-boxplot rect:hover {\n  fill-opacity: 1; }\n\n.nvd3 line.nv-boxplot-median {\n  stroke: black; }\n\n.nv-boxplot-tick:hover {\n  stroke-width: 2.5px; }\n\n/* bullet */\n.nvd3.nv-bullet {\n  font: 10px sans-serif; }\n\n.nvd3.nv-bullet .nv-measure {\n  fill-opacity: .8; }\n\n.nvd3.nv-bullet .nv-measure:hover {\n  fill-opacity: 1; }\n\n.nvd3.nv-bullet .nv-marker {\n  stroke: #000;\n  stroke-width: 2px; }\n\n.nvd3.nv-bullet .nv-markerTriangle {\n  stroke: #000;\n  fill: #fff;\n  stroke-width: 1.5px; }\n\n.nvd3.nv-bullet .nv-markerLine {\n  stroke: #000;\n  stroke-width: 1.5px; }\n\n.nvd3.nv-bullet .nv-tick line {\n  stroke: #666;\n  stroke-width: .5px; }\n\n.nvd3.nv-bullet .nv-range.nv-s0 {\n  fill: #eee; }\n\n.nvd3.nv-bullet .nv-range.nv-s1 {\n  fill: #ddd; }\n\n.nvd3.nv-bullet .nv-range.nv-s2 {\n  fill: #ccc; }\n\n.nvd3.nv-bullet .nv-title {\n  font-size: 14px;\n  font-weight: bold; }\n\n.nvd3.nv-bullet .nv-subtitle {\n  fill: #999; }\n\n.nvd3.nv-bullet .nv-range {\n  fill: #bababa;\n  fill-opacity: .4; }\n\n.nvd3.nv-bullet .nv-range:hover {\n  fill-opacity: .7; }\n\n.nvd3.nv-candlestickBar .nv-ticks .nv-tick {\n  stroke-width: 1px; }\n\n.nvd3.nv-candlestickBar .nv-ticks .nv-tick.hover {\n  stroke-width: 2px; }\n\n.nvd3.nv-candlestickBar .nv-ticks .nv-tick.positive rect {\n  stroke: #2ca02c;\n  fill: #2ca02c; }\n\n.nvd3.nv-candlestickBar .nv-ticks .nv-tick.negative rect {\n  stroke: #d62728;\n  fill: #d62728; }\n\n.with-transitions .nv-candlestickBar .nv-ticks .nv-tick {\n  transition: stroke-width 250ms linear, stroke-opacity 250ms linear;\n  -moz-transition: stroke-width 250ms linear, stroke-opacity 250ms linear;\n  -webkit-transition: stroke-width 250ms linear, stroke-opacity 250ms linear; }\n\n.nvd3.nv-candlestickBar .nv-ticks line {\n  stroke: #333; }\n\n.nv-force-node {\n  stroke: #fff;\n  stroke-width: 1.5px; }\n\n.nv-force-link {\n  stroke: #999;\n  stroke-opacity: .6; }\n\n.nv-force-node text {\n  stroke-width: 0px; }\n\n.nvd3 .nv-legend .nv-disabled rect {\n  /*fill-opacity: 0;*/ }\n\n.nvd3 .nv-check-box .nv-box {\n  fill-opacity: 0;\n  stroke-width: 2; }\n\n.nvd3 .nv-check-box .nv-check {\n  fill-opacity: 0;\n  stroke-width: 4; }\n\n.nvd3 .nv-series.nv-disabled .nv-check-box .nv-check {\n  fill-opacity: 0;\n  stroke-opacity: 0; }\n\n.nvd3 .nv-controlsWrap .nv-legend .nv-check-box .nv-check {\n  opacity: 0; }\n\n/* line plus bar */\n.nvd3.nv-linePlusBar .nv-bar rect {\n  fill-opacity: .75; }\n\n.nvd3.nv-linePlusBar .nv-bar rect:hover {\n  fill-opacity: 1; }\n\n.nvd3 .nv-groups path.nv-line {\n  fill: none; }\n\n.nvd3 .nv-groups path.nv-area {\n  stroke: none; }\n\n.nvd3.nv-line .nvd3.nv-scatter .nv-groups .nv-point {\n  fill-opacity: 0;\n  stroke-opacity: 0; }\n\n.nvd3.nv-scatter.nv-single-point .nv-groups .nv-point {\n  fill-opacity: .5 !important;\n  stroke-opacity: .5 !important; }\n\n.with-transitions .nvd3 .nv-groups .nv-point {\n  transition: stroke-width 250ms linear, stroke-opacity 250ms linear;\n  -moz-transition: stroke-width 250ms linear, stroke-opacity 250ms linear;\n  -webkit-transition: stroke-width 250ms linear, stroke-opacity 250ms linear; }\n\n.nvd3.nv-scatter .nv-groups .nv-point.hover,\n.nvd3 .nv-groups .nv-point.hover {\n  stroke-width: 7px;\n  fill-opacity: .95 !important;\n  stroke-opacity: .95 !important; }\n\n.nvd3 .nv-point-paths path {\n  stroke: #aaa;\n  stroke-opacity: 0;\n  fill: #eee;\n  fill-opacity: 0; }\n\n.nvd3 .nv-indexLine {\n  cursor: ew-resize; }\n\n/********************\r\n * SVG CSS\r\n */\n/********************\r\n  Default CSS for an svg element nvd3 used\r\n*/\nsvg.nvd3-svg {\n  -webkit-touch-callout: none;\n  -webkit-user-select: none;\n  -khtml-user-select: none;\n  -ms-user-select: none;\n  -moz-user-select: none;\n  user-select: none;\n  display: block;\n  width: 100%;\n  height: 100%; }\n\n/********************\r\n  Box shadow and border radius styling\r\n*/\n.nvtooltip.with-3d-shadow, .with-3d-shadow .nvtooltip {\n  -moz-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);\n  -webkit-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);\n  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);\n  -webkit-border-radius: 5px;\n  -moz-border-radius: 5px;\n  border-radius: 5px; }\n\n.nvd3 text {\n  font: normal 12px Arial; }\n\n.nvd3 .title {\n  font: bold 14px Arial; }\n\n.nvd3 .nv-background {\n  fill: white;\n  fill-opacity: 0; }\n\n.nvd3.nv-noData {\n  font-size: 18px;\n  font-weight: bold; }\n\n/**********\r\n*  Brush\r\n*/\n.nv-brush .extent {\n  fill-opacity: .125;\n  shape-rendering: crispEdges; }\n\n.nv-brush .resize path {\n  fill: #eee;\n  stroke: #666; }\n\n/**********\r\n*  Legend\r\n*/\n.nvd3 .nv-legend .nv-series {\n  cursor: pointer; }\n\n.nvd3 .nv-legend .nv-disabled circle {\n  fill-opacity: 0; }\n\n/* focus */\n.nvd3 .nv-brush .extent {\n  fill-opacity: 0 !important; }\n\n.nvd3 .nv-brushBackground rect {\n  stroke: #000;\n  stroke-width: .4;\n  fill: #fff;\n  fill-opacity: .7; }\n\n/**********\r\n*  Print\r\n*/\n@media print {\n  .nvd3 text {\n    stroke-width: 0;\n    fill-opacity: 1; } }\n\n.nvd3.nv-ohlcBar .nv-ticks .nv-tick {\n  stroke-width: 1px; }\n\n.nvd3.nv-ohlcBar .nv-ticks .nv-tick.hover {\n  stroke-width: 2px; }\n\n.nvd3.nv-ohlcBar .nv-ticks .nv-tick.positive {\n  stroke: #2ca02c; }\n\n.nvd3.nv-ohlcBar .nv-ticks .nv-tick.negative {\n  stroke: #d62728; }\n\n.nvd3 .background path {\n  fill: none;\n  stroke: #EEE;\n  stroke-opacity: .4;\n  shape-rendering: crispEdges; }\n\n.nvd3 .foreground path {\n  fill: none;\n  stroke-opacity: .7; }\n\n.nvd3 .nv-parallelCoordinates-brush .extent {\n  fill: #fff;\n  fill-opacity: .6;\n  stroke: gray;\n  shape-rendering: crispEdges; }\n\n.nvd3 .nv-parallelCoordinates .hover {\n  fill-opacity: 1;\n  stroke-width: 3px; }\n\n.nvd3 .missingValuesline line {\n  fill: none;\n  stroke: black;\n  stroke-width: 1;\n  stroke-opacity: 1;\n  stroke-dasharray: 5, 5; }\n\n.nvd3.nv-pie path {\n  stroke-opacity: 0;\n  transition: fill-opacity 250ms linear, stroke-width 250ms linear, stroke-opacity 250ms linear;\n  -moz-transition: fill-opacity 250ms linear, stroke-width 250ms linear, stroke-opacity 250ms linear;\n  -webkit-transition: fill-opacity 250ms linear, stroke-width 250ms linear, stroke-opacity 250ms linear; }\n\n.nvd3.nv-pie .nv-pie-title {\n  font-size: 24px;\n  fill: rgba(19, 196, 249, 0.59); }\n\n.nvd3.nv-pie .nv-slice text {\n  stroke: #000;\n  stroke-width: 0; }\n\n.nvd3.nv-pie path {\n  stroke: #fff;\n  stroke-width: 1px;\n  stroke-opacity: 1; }\n\n.nvd3.nv-pie path {\n  fill-opacity: .7; }\n\n.nvd3.nv-pie .hover path {\n  fill-opacity: 1; }\n\n.nvd3.nv-pie .nv-label {\n  pointer-events: none; }\n\n.nvd3.nv-pie .nv-label rect {\n  fill-opacity: 0;\n  stroke-opacity: 0; }\n\n/* scatter */\n.nvd3 .nv-groups .nv-point.hover {\n  stroke-width: 20px;\n  stroke-opacity: .5; }\n\n.nvd3 .nv-scatter .nv-point.hover {\n  fill-opacity: 1; }\n\n.nv-noninteractive {\n  pointer-events: none; }\n\n.nv-distx, .nv-disty {\n  pointer-events: none; }\n\n/* sparkline */\n.nvd3.nv-sparkline path {\n  fill: none; }\n\n.nvd3.nv-sparklineplus g.nv-hoverValue {\n  pointer-events: none; }\n\n.nvd3.nv-sparklineplus .nv-hoverValue line {\n  stroke: #333;\n  stroke-width: 1.5px; }\n\n.nvd3.nv-sparklineplus,\n.nvd3.nv-sparklineplus g {\n  pointer-events: all; }\n\n.nvd3 .nv-hoverArea {\n  fill-opacity: 0;\n  stroke-opacity: 0; }\n\n.nvd3.nv-sparklineplus .nv-xValue,\n.nvd3.nv-sparklineplus .nv-yValue {\n  stroke-width: 0;\n  font-size: .9em;\n  font-weight: normal; }\n\n.nvd3.nv-sparklineplus .nv-yValue {\n  stroke: #f66; }\n\n.nvd3.nv-sparklineplus .nv-maxValue {\n  stroke: #2ca02c;\n  fill: #2ca02c; }\n\n.nvd3.nv-sparklineplus .nv-minValue {\n  stroke: #d62728;\n  fill: #d62728; }\n\n.nvd3.nv-sparklineplus .nv-currentValue {\n  font-weight: bold;\n  font-size: 1.1em; }\n\n/* stacked area */\n.nvd3.nv-stackedarea path.nv-area {\n  fill-opacity: .7;\n  stroke-opacity: 0;\n  transition: fill-opacity 250ms linear, stroke-opacity 250ms linear;\n  -moz-transition: fill-opacity 250ms linear, stroke-opacity 250ms linear;\n  -webkit-transition: fill-opacity 250ms linear, stroke-opacity 250ms linear; }\n\n.nvd3.nv-stackedarea path.nv-area.hover {\n  fill-opacity: .9; }\n\n.nvd3.nv-stackedarea .nv-groups .nv-point {\n  stroke-opacity: 0;\n  fill-opacity: 0; }\n\n.nvtooltip {\n  position: absolute;\n  background-color: white;\n  color: black;\n  padding: 1px;\n  border: 1px solid rgba(0, 0, 0, 0.2);\n  z-index: 10000;\n  display: block;\n  font-family: Arial;\n  font-size: 13px;\n  text-align: left;\n  pointer-events: none;\n  white-space: nowrap;\n  -webkit-touch-callout: none;\n  -webkit-user-select: none;\n  -khtml-user-select: none;\n  -moz-user-select: none;\n  -ms-user-select: none;\n  user-select: none; }\n\n.nvtooltip {\n  background: rgba(255, 255, 255, 0.8);\n  border: 1px solid rgba(0, 0, 0, 0.5);\n  border-radius: 4px; }\n\n/*Give tooltips that old fade in transition by\r\n    putting a \"with-transitions\" class on the container div.\r\n*/\n.nvtooltip.with-transitions, .with-transitions .nvtooltip {\n  transition: opacity 50ms linear;\n  -moz-transition: opacity 50ms linear;\n  -webkit-transition: opacity 50ms linear;\n  transition-delay: 200ms;\n  -moz-transition-delay: 200ms;\n  -webkit-transition-delay: 200ms; }\n\n.nvtooltip.x-nvtooltip,\n.nvtooltip.y-nvtooltip {\n  padding: 8px; }\n\n.nvtooltip h3 {\n  margin: 0;\n  padding: 4px 14px;\n  line-height: 18px;\n  font-weight: normal;\n  background-color: rgba(247, 247, 247, 0.75);\n  color: black;\n  text-align: center;\n  border-bottom: 1px solid #ebebeb;\n  -webkit-border-radius: 5px 5px 0 0;\n  -moz-border-radius: 5px 5px 0 0;\n  border-radius: 5px 5px 0 0; }\n\n.nvtooltip p {\n  margin: 0;\n  padding: 5px 14px;\n  text-align: center; }\n\n.nvtooltip span {\n  display: inline-block;\n  margin: 2px 0; }\n\n.nvtooltip table {\n  margin: 6px;\n  border-spacing: 0; }\n\n.nvtooltip table td {\n  padding: 2px 9px 2px 0;\n  vertical-align: middle; }\n\n.nvtooltip table td.key {\n  font-weight: normal; }\n\n.nvtooltip table td.key.total {\n  font-weight: bold; }\n\n.nvtooltip table td.value {\n  text-align: right;\n  font-weight: bold; }\n\n.nvtooltip table td.percent {\n  color: darkgray; }\n\n.nvtooltip table tr.highlight td {\n  padding: 1px 9px 1px 0;\n  border-bottom-style: solid;\n  border-bottom-width: 1px;\n  border-top-style: solid;\n  border-top-width: 1px; }\n\n.nvtooltip table td.legend-color-guide div {\n  width: 8px;\n  height: 8px;\n  vertical-align: middle; }\n\n.nvtooltip table td.legend-color-guide div {\n  width: 12px;\n  height: 12px;\n  border: 1px solid #999; }\n\n.nvtooltip .footer {\n  padding: 3px;\n  text-align: center; }\n\n.nvtooltip-pending-removal {\n  pointer-events: none;\n  display: none; }\n\n/****\r\nInteractive Layer\r\n*/\n.nvd3 .nv-interactiveGuideLine {\n  pointer-events: none; }\n\n.nvd3 line.nv-guideline {\n  stroke: #ccc; }\n\n/***********************/\n/*         NvD3        */\n/***********************/\n.nvtooltip {\n  padding: 5px 10px;\n  font-family: \"Open Sans\", sans-serif;\n  font-size: 0.875rem;\n  text-align: center; }\n  .nvtooltip p {\n    margin: 0;\n    padding: 0; }\n  .nvtooltip h3 {\n    background: none;\n    border-bottom: 0; }\n\nsvg text {\n  font: 300 0.875rem \"Open Sans\", sans-serif;\n  fill: #555555; }\n\nsvg .title {\n  font: 700 1rem \"Open Sans\", sans-serif; }\n\n.nvd3.nv-noData {\n  font-size: 1.25rem;\n  font-weight: 700; }\n\n.nvd3 .nv-axis path.domain {\n  stroke-opacity: 0; }\n\n.nv-controlsWrap .nv-legend-symbol {\n  fill: #666 !important;\n  stroke: #666 !important; }\n\n/***********************/\n/*   Easy Pie Chart    */\n/***********************/\n.easy-pie-chart {\n  position: relative;\n  display: inline-block;\n  line-height: 120px;\n  height: 120px;\n  width: 120px;\n  text-align: center;\n  color: #777; }\n  .easy-pie-chart canvas {\n    position: absolute;\n    top: 0;\n    left: 0; }\n\n/***********************/\n/*         Flot        */\n/***********************/\n.chart-tooltip {\n  position: fixed;\n  padding: 5px 10px;\n  border: 1px solid #ddd;\n  font-size: 13px;\n  background-color: #fff; }\n"
+throw new Error("Module build failed: Error: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (57)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v3.9.3\n    at Object.<anonymous> (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\node-sass\\lib\\index.js:13:11)\n    at Module._compile (module.js:652:30)\n    at Object.Module._extensions..js (module.js:663:10)\n    at Module.load (module.js:565:32)\n    at tryModuleLoad (module.js:505:12)\n    at Function.Module._load (module.js:497:3)\n    at Module.require (module.js:596:17)\n    at require (internal/module.js:11:18)\n    at Object.<anonymous> (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\sass-loader\\index.js:4:12)\n    at Module._compile (module.js:652:30)\n    at Object.Module._extensions..js (module.js:663:10)\n    at Module.load (module.js:565:32)\n    at tryModuleLoad (module.js:505:12)\n    at Function.Module._load (module.js:497:3)\n    at Module.require (module.js:596:17)\n    at require (internal/module.js:11:18)\n    at loadLoader (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\loadLoader.js:13:17)\n    at iteratePitchingLoaders (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\LoaderRunner.js:169:2)\n    at iteratePitchingLoaders (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\LoaderRunner.js:165:10)\n    at D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\LoaderRunner.js:173:18\n    at loadLoader (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\loadLoader.js:36:3)\n    at iteratePitchingLoaders (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\LoaderRunner.js:169:2)\n    at runLoaders (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\LoaderRunner.js:362:2)\n    at NormalModule.doBuild (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\NormalModule.js:125:2)\n    at NormalModule.build (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\NormalModule.js:173:15)\n    at Compilation.buildModule (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\Compilation.js:127:9)\n    at D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\Compilation.js:303:10\n    at D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\NormalModuleFactory.js:63:13\n    at NormalModuleFactory.applyPluginsAsyncWaterfall (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\tapable\\lib\\Tapable.js:260:70)\n    at onDoneResolving (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\NormalModuleFactory.js:38:11)");
 
 /***/ },
 
@@ -34950,7 +34811,7 @@ exports.FlotChart = FlotChart;
 "use strict";
 var core_1 = __webpack_require__("./node_modules/@angular/core/index.js");
 __webpack_require__("./node_modules/jquery-flot/jquery.flot.js");
-__webpack_require__("./node_modules/jquery.flot.animator/jquery.flot.animator.js");
+__webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"jquery.flot.animator/jquery.flot.animator\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 __webpack_require__("./node_modules/jquery-flot/jquery.flot.time.js");
 var flot_directive_1 = __webpack_require__("./src/app/components/flot/flot.directive.ts");
 var FlotChartModule = (function () {

@@ -1,1184 +1,5 @@
 webpackJsonpac__name_([10],{
 
-/***/ "./node_modules/bootstrap-application-wizard/src/bootstrap-wizard.js":
-/***/ function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(__webpack_provided_window_dot_jQuery) {/*
- * Copyright (C) 2013 Panopta, Andrew Moffat
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-(function ($) {
-    $.fn.wizard = function(args) {
-        return new Wizard(this, args);
-    };
-
-    $.fn.wizard.logging = false;
-    
-    var WizardCard = function(wizard, card, index, prev, next) {
-        this.wizard 	= wizard;
-        this.index 		= index;
-        this.prev 		= prev;
-        this.next 		= next;
-        this.el 		= card;
-        this.title 		= card.find("h3").first().text();
-        this.name 		= card.data("cardname") || this.title;
-
-        this.nav 		= this._createNavElement(this.title, index);
-
-        this._disabled 	= false;
-        this._loaded 	= false;
-        this._events =	 {};
-    };
-    
-    WizardCard.prototype = {
-        select: function() {
-            this.log("selecting");
-            if (!this.isSelected()) {
-                this.nav.addClass("active");
-                this.el.show();
-
-                if (!this._loaded) {
-                    this.trigger("loaded");
-                    this.reload();
-                }
-
-                this.trigger("selected");
-            }
-
-
-            /*
-             * this is ugly, but we're handling the changing of the wizard's
-             * buttons here, in the WizardCard select.  so when a card is
-             * selected, we're figuring out if we're the first card or the
-             * last card and changing the wizard's buttons via the guts of
-             * the wizard
-             *
-             * ideally this logic should be encapsulated by some wizard methods
-             * that we can call from here, instead of messing with the guts
-             */
-            var w = this.wizard;
-
-            // The back button is only disabled on this first card...
-            w.backButton.toggleClass("disabled", this.index == 0);
-
-            if (this.index >= w._cards.length-1) {
-                this.log("on last card, changing next button to submit");
-
-                w.changeNextButton(w.args.buttons.submitText, "btn-success");
-                w._readyToSubmit = true;
-                w.trigger("readySubmit");
-            }
-            else {
-                w._readyToSubmit = false;
-                w.changeNextButton(w.args.buttons.nextText, "btn-primary");
-            }
-
-            return this;
-        },
-
-        _createNavElement: function(name, i) {
-            var li = $('<li class="wizard-nav-item"></li>');
-            var a = $('<a class="wizard-nav-link"></a>');
-            a.data("navindex", i);
-            li.append(a);
-            a.append('<span class="glyphicon glyphicon-chevron-right"></span> ');
-            a.append(name);
-            return li;
-        },
-
-        markVisited: function() {
-            this.log("marking as visited");
-            this.nav.addClass("already-visited");
-            this.trigger("markVisited");
-            return this;
-        },
-
-        unmarkVisited: function() {
-            this.log("unmarking as visited");
-            this.nav.removeClass("already-visited");
-            this.trigger("unmarkVisited");
-            return this;
-        },
-
-        deselect: function() {
-            this.nav.removeClass("active");
-            this.el.hide();
-            this.trigger("deselect");
-            return this;
-        },
-
-        enable: function() {
-            this.log("enabling");
-            
-            // Issue #38 Hiding navigation link when hide card
-            // Awaiting approval
-            //
-            // this.nav.removeClass('hide');
-            
-            this.nav.addClass("active");
-            this._disabled = false;
-            this.trigger("enabled");
-            return this;
-        },
-
-        disable: function(hideCard) {
-            this.log("disabling");
-            this._disabled = true;
-            this.nav.removeClass("active already-visited");
-            if (hideCard) {
-                this.el.hide();
-                // Issue #38 Hiding navigation link when hide card
-                // Awaiting approval
-                //
-                // this.nav.addClass('hide');
-            }
-            this.trigger("disabled");
-            return this;
-        },
-
-        isDisabled: function() {
-            return this._disabled;
-        },
-
-        alreadyVisited: function() {
-            return this.nav.hasClass("already-visited");
-        },
-
-        isSelected: function() {
-            return this.nav.hasClass("active");
-        },
-
-        reload: function() {
-            this._loaded = true;
-            this.trigger("reload");
-            return this;
-        },
-
-        on: function() {
-            return this.wizard.on.apply(this, arguments);
-        },
-
-        trigger: function() {
-            this.callListener("on"+arguments[0]);
-            return this.wizard.trigger.apply(this, arguments);
-        },
-
-        /*
-         * displays an alert box on the current card
-         */
-        toggleAlert: function(msg, toggle) {
-            this.log("toggling alert to: " + toggle);
-
-            toggle = typeof(toggle) == "undefined" ? true : toggle;
-
-            if (toggle) {this.trigger("showAlert");}
-            else {this.trigger("hideAlert");}
-
-            var div;
-            var alert = this.el.children("h3").first().next("div.alert");
-
-            if (alert.length == 0) {
-                /*
-                 * we're hiding anyways, so no need to create anything.
-                 * we'll do that if we ever are actually showing the alert
-                 */
-                if (!toggle) {return this;}
-
-                this.log("couldn't find existing alert div, creating one");
-                div = $("<div />");
-                div.addClass("alert");
-                div.addClass("hide");
-                div.insertAfter(this.el.find("h3").first());
-            }
-            else {
-                this.log("found existing alert div");
-                div = alert.first();
-            }
-
-            if (toggle) {
-                if (msg != null) {
-                    this.log("setting alert msg to", msg);
-                    div.html(msg);
-                }
-                div.show();
-            }
-            else {
-                div.hide();
-            }
-            return this;
-        },
-
-        /*
-         * this looks for event handlers embedded into the html of the
-         * wizard card itself, in the form of a data- attribute
-         */
-        callListener: function(name) {
-            // a bug(?) in jquery..can't access data-<name> if name is camelCase
-            name = name.toLowerCase();
-
-            this.log("looking for listener " + name);
-            var listener = window[this.el.data(name)];
-            if (listener) {
-                this.log("calling listener " + name);
-                var wizard = this.wizard;
-
-                try {
-                    var vret = listener(this);
-                }
-                catch (e) {
-                    this.log("exception calling listener " + name + ": ", e);
-                }
-            }
-            else {
-                this.log("didn't find listener " + name);
-            }
-        },
-
-        problem: function(toggle) {
-            this.nav.find("a").toggleClass("wizard-step-error", toggle);
-        },
-
-        validate: function() {
-            var failures = false;
-            var self = this;
-
-            /*
-             * run all the validators embedded on the inputs themselves
-             */
-            this.el.find("[data-validate]").each(function(i, el) {
-                self.log("validating individiual inputs");
-                el = $(el);
-
-                var v = el.data("validate");
-                if (!v) {return;}
-
-                var ret = {
-                    status: true,
-                    title: "Error",
-                    msg: ""
-                };
-
-                var vret = window[v](el);
-                $.extend(ret, vret);
-
-                // Add-On
-                // This allows the use of a INPUT+BTN used as one according to boostrap layout
-                // for the wizard it is required to add an id with btn-(ID of Input)
-                // this will make sure the popover is drawn on the correct element
-                if ( $('#btn-' + el.attr('id')).length === 1 ) {
-                    el = $('#btn-' + el.attr('id'));
-                }
-
-                if (!ret.status) {
-                    failures = true;
-                    
-                    // Updated to show error on correct form-group
-                    el.parents("div.form-group").toggleClass("has-error", true);
-                    
-                    // This allows the use of a INPUT+BTN used as one according to boostrap layout
-                    // for the wizard it is required to add an id with btn-(ID of Input)
-                    // this will make sure the popover is drawn on the correct element
-                    if ( $('#btn-' + el.attr('id')).length === 1 ) {
-                        el = $('#btn-' + el.attr('id'));
-                    }
-                    
-                    self.wizard.errorPopover(el, ret.msg);
-                } else {
-                    el.parents("div.form-group").toggleClass("has-error", false);
-                    
-                    // This allows the use of a INPUT+BTN used as one according to boostrap layout
-                    // for the wizard it is required to add an id with btn-(ID of Input)
-                    // this will make sure the popover is drawn on the correct element
-                    if ( $('#btn-' + el.attr('id')).length === 1 ) {
-                        el = $('#btn-' + el.attr('id'));
-                    }
-                    
-                    try {
-                        el.popover("destroy");
-                    }
-                    /*
-                     * older versions of bootstrap don't have a destroy call
-                     * for popovers
-                     */
-                    catch (e) {
-                        el.popover("hide");
-                    }
-                }
-            });
-            this.log("after validating inputs, failures is", failures);
-
-            /*
-             * run the validator embedded in the card
-             */
-            var cardValidator = window[this.el.data("validate")];
-            if (cardValidator) {
-                this.log("running html-embedded card validator");
-                var cardValidated = cardValidator(this);
-                if (typeof(cardValidated) == "undefined" || cardValidated == null) {
-                    cardValidated = true;
-                }
-                if (!cardValidated) failures = true;
-                this.log("after running html-embedded card validator, failures is", failures);
-            }
-
-            /*
-             * run the validate listener
-             */
-            this.log("running listener validator");
-            var listenerValidated = this.trigger("validate");
-            if (typeof(listenerValidated) == "undefined" || listenerValidated == null) {
-                listenerValidated = true;
-            }
-            if (!listenerValidated) failures = true;
-            this.log("after running listener validator, failures is", failures);
-
-            var validated = !failures;
-            if (validated) {
-                this.log("validated, calling listeners");
-                this.trigger("validated");
-            }
-            else {
-                this.log("invalid");
-                this.trigger("invalid");
-            }
-            return validated;
-        },
-        
-        log: function() {
-            if (!window.console || !$.fn.wizard.logging) {return;}
-            var prepend = "card '"+this.name+"': ";
-            var args = [prepend];
-            args.push.apply(args, arguments);
-
-            console.log.apply(console, args);
-        },
-
-        isActive: function() {
-            return this.nav.hasClass("active");
-        }
-    };
-    
-    Wizard = function(markup, args) {
-        
-        /* TEMPLATE */
-        this.wizard_template = [
-            '<div  class="modal fade wizard">',
-                '<div class="modal-dialog wizard-dialog">',
-                    '<div class="modal-content wizard-content">',
-                        '<div class="modal-header wizard-header">',
-                            '<button type="button" class="close wizard-close" aria-hidden="true">&times;</button>',
-                            '<h3 class="modal-title wizard-title"></h3>',
-                            '<span class="wizard-subtitle"></span>',
-                        '</div>',
-                        '<div class="modal-body wizard-body">',
-                            '<div class="pull-left wizard-steps">',
-                                '<div class="wizard-nav-container">',
-                                    '<ul class="nav wizard-nav-list">',
-                                    '</ul>',
-                                '</div>',
-                                '<div class="wizard-progress-container">',
-                                    '<div class="progress progress-striped">',
-                                        '<div class="progress-bar" style="width: 0%;"></div>',
-                                    '</div>',
-                                '</div>',
-                            '</div>',
-                            '<form>',
-                                '<div class="wizard-cards">',
-                                    '<div class="wizard-card-container">',
-                                    '</div>',
-                                    '<div class="wizard-footer">',
-                                        '<div class="wizard-buttons-container">',
-                                            '<button class="btn wizard-cancel wizard-close" type="button">Cancel</button>',
-                                            '<div class="btn-group-single pull-right">',
-                                                '<button class="btn wizard-back" type="button">Back</button>',
-                                                '<button class="btn btn-primary wizard-next" type="button">Next</button>',
-                                            '</div>',
-                                        '</div>',
-                                    '</div>',
-                                '</div>',
-                            '</form>',
-                        '</div>',
-                    
-                    '</div>',
-                '</div>',
-            '</div>'
-        ];
-        
-        this.args = {
-            keyboard: true,
-            backdrop: true,
-            show: false,
-            submitUrl: "",
-            showCancel: false,
-            showClose: true,
-            progressBarCurrent: false,
-            increaseHeight: 0,
-            contentHeight: 300,
-            contentWidth: 580,
-            buttons: {
-                cancelText: "Cancel",
-                nextText: "Next",
-                backText: "Back",
-                submitText: "Submit",
-                submittingText: "Submitting...",
-            },
-            formClass: "form-horizontal"
-        };
-        
-        $.extend(this.args, args || {});
-        
-        this._create(markup);
-    };
-    
-    Wizard.prototype = {
-        log: function() {
-            if (!window.console || !$.fn.wizard.logging) {return;}
-            var prepend = "wizard "+this.el.id+": ";
-            var args = [prepend];
-            args.push.apply(args, arguments);
-            console.log.apply(console, args);
-        },
-        
-        _create: function(markup) {
-            this.markup = $(markup);
-            this.title					= 	this.markup.data('title');
-            this.submitCards 			= 	this.markup.find(".wizard-error,.wizard-failure,.wizard-success,.wizard-loading");
-            this.el						=	$(this.wizard_template.join('\n'));
-            $('body').append(this.el);
-            
-            this.modal 					= 	this.el.modal({
-                keyboard: this.args.keyboard,
-                show: this.args.show,
-                backdrop: this.args.backdrop
-            });
-            
-            this.dimensions				=	{
-                                                contentHeight: this.args.contentHeight,
-                                                contentWidth: this.args.contentWidth
-                                            };
-            this.dialog 				=	this.modal.find('.wizard-dialog');
-            this.content 				= 	this.modal.find('.wizard-content');
-            this.header 				= 	this.modal.find('.wizard-header');
-            this.body 					= 	this.modal.find('.wizard-body');
-            this.wizardSteps			= 	this.modal.find('.wizard-steps');
-            this.wizardCards			=	this.modal.find('.wizard-cards');
-            this.wizardCardContainer	=	this.modal.find('.wizard-card-container');
-            this.wizardCardContainer
-                .append(this.markup.find('.wizard-card'))
-                .append(this.submitCards);
-            this.navContainer 			= 	this.modal.find('.wizard-nav-container');
-            this.navList				= 	this.modal.find('.wizard-nav-list');
-            this.progressContainer		= 	this.modal.find('.wizard-progress-container');
-            this.progress				= 	this.progressContainer.find('.progress-bar');
-            this.closeButton 			= 	this.modal.find('button.wizard-close.close');
-            this.cardsContainer			=	this.modal.find('wizard-cards-container');
-            this.form					=	this.modal.find('form');
-            this.footer 				= 	this.modal.find(".wizard-footer");
-            this.cancelButton 			= 	this.footer.find(".wizard-cancel");
-            this.backButton 			= 	this.footer.find(".wizard-back");
-            this.nextButton 			= 	this.footer.find(".wizard-next");
-            
-            this._cards 				= 	[];
-            this.cards 					= 	{};
-            this._readyToSubmit 		= 	false;
-            this.percentComplete 		=	0;
-            this._submitting 			= 	false;
-            this._events 				= 	{};
-            this._firstShow 			= 	true;
-            
-            this._createCards();
-
-            this.nextButton.click(this, this._handleNextClick);
-            this.backButton.click(this, this._handleBackClick);
-
-            this.cancelButton.text(this.args.buttons.cancelText);
-            this.backButton.text(this.args.buttons.backText);
-            this.nextButton.text(this.args.buttons.nextText);
-            
-            // Apply Form Class(es)
-            this.form.addClass(this.args.formClass);
-            
-            // Register Array Holder for popovers
-            this.popovers				= [];
-
-            var self = this;
-            var _close = function() {
-                self.reset();
-                self.close();
-                self.trigger("closed");
-            };
-
-            // Register Close Button
-            this.closeButton.click(_close);
-            this.cancelButton.click(_close);
-            
-            this.wizardSteps.on("click", "li.already-visited a.wizard-nav-link", this,
-            function(event) {
-                var index = parseInt($(event.target).data("navindex"));
-                event.data.setCard(index);
-            });
-            
-            if ( this.title.length != 0 ) {
-                this.setTitle(this.title);
-            }
-            
-            this.on("submit", this._defaultSubmit);
-            
-            // Set Modal Dimensions
-            this.autoDimensions();
-        },
-        
-        autoDimensions: function() {
-            // DO NOT REMOVE DISPLAY ; Temporary display is required for calculation
-            this.modal.css('display', 'block');
-            
-            this.dimensions.header = this.header.outerHeight(true);
-            
-            // Navigation Pane is dyanmic build on card content
-            // Navigation Pane === BASE Inner Content Height
-            this.dimensions.navigation = this.wizardSteps.outerHeight(true);
-            if ( this.dimensions.navigation < this.dimensions.contentHeight ) {
-                this.dimensions.navigation = this.dimensions.contentHeight;
-                this.navContainer.height( (this.dimensions.contentHeight-30) - this.progressContainer.outerHeight(true));
-            }
-            
-            // Dimension Alias ( Body Height === (Navigation Height) )
-            this.dimensions.body = this.dimensions.navigation;
-            
-            // Apply OuterHeight of navigation to it's parent wizardSteps
-            this.wizardSteps.height(this.dimensions.body);
-            
-            // Modal Height === (Header + Content)
-            this.dimensions.modal = (this.dimensions.header + this.dimensions.navigation);
-            this.content.height(this.dimensions.modal + 'px');
-            this.dialog.width(this.dimensions.contentWidth);
-            
-            this.body.height(this.dimensions.body + 'px');
-            this.wizardCards.height(this.dimensions.body + 'px');
-            
-            // Footer Height
-            this.dimensions.footer = this.footer.outerHeight(true);
-            
-            // Card Container === (Body - Footer)
-            this.dimensions.cardContainer = (this.dimensions.body - this.dimensions.footer);
-            this.wizardCardContainer.height(this.dimensions.cardContainer);
-            
-            // Reposition
-            this.dimensions.offset = ($(window).height() - this.dialog.height()) / 2;			
-            this.dialog.css({
-                'margin-top': this.dimensions.offset + 'px',
-                'padding-top': 0
-            });
-            
-            // DO NOT REMOVE NEXT LINE
-            this.modal.css('display', '');
-        },
-        
-        setTitle: function(title) {
-            this.log("setting title to", title);
-            this.modal.find(".wizard-title").first().text(title);
-            return this;
-        },
-
-        setSubtitle: function(title) {
-            this.log("setting subtitle to", title);
-            this.modal.find(".wizard-subtitle").first().text(title);
-            return this;
-        },
-        
-        errorPopover: function(el, msg, allowHtml) {
-            this.log("launching popover on", el);
-            allowHtml = typeof allowHtml !== "undefined" ? allowHtml : false;
-            var popover = el.popover({
-                content: msg,
-                trigger: "manual",
-                html: allowHtml,
-                container: el.parents('.form-group')
-            }).addClass("error-popover").popover("show").next(".popover");
-
-            el.parents('.form-group').find('.popover').addClass("error-popover");
-            
-            this.popovers.push(el);
-            
-            return popover;
-        },
-        
-        destroyPopover: function(pop) {
-            pop = $(pop);
-            
-            /*
-             * this is the element that the popover was created for
-             */
-            try {
-                pop.popover("destroy");
-            }
-            /*
-             * older versions of bootstrap don't have a destroy call
-             * for popovers
-             */
-            catch (e) {
-                pop.popover("hide");
-            }
-        },
-        
-        hidePopovers: function(el) {
-            this.log("hiding all popovers");
-            var self = this;
-
-            $.each(this.popovers, function(i, p) {
-                self.destroyPopover(p);
-            });
-            
-            this.modal.find('.has-error').removeClass('has-error');
-            this.popovers = [];
-        },
-
-        eachCard: function(fn) {
-            $.each(this._cards, fn);
-            return this;
-        },
-
-        getActiveCard: function() {
-            this.log("getting active card");
-            var currentCard = null;
-
-            $.each(this._cards, function(i, card) {
-                if (card.isActive()) {
-                    currentCard = card;
-                    return false;
-                }
-            });
-            if (currentCard) {this.log("found active card", currentCard);}
-            else {this.log("couldn't find an active card");}
-            return currentCard;
-        },
-
-        changeNextButton: function(text, cls) {
-            this.log("changing next button, text: " + text, "class: " + cls);
-            if (typeof(cls) != "undefined") {
-                this.nextButton.removeClass("btn-success btn-primary");
-            }
-
-            if (cls) {
-                this.nextButton.addClass(cls);
-            }
-            this.nextButton.text(text);
-            return this;
-        },
-
-        hide: function() {
-            this.log("hiding");
-            this.modal.modal("hide");
-            return this;
-        },
-
-        close: function() {
-            this.log("closing");
-            this.modal.modal("hide");
-            return this;
-        },
-
-
-        show: function(modalOptions) {
-            this.log("showing");
-            if (this._firstShow) {
-                this.setCard(0);
-                this._firstShow = false;
-            }
-            if (this.args.showCancel) { 
-                this.cancelButton.show(); 
-            } else {
-                this.cancelButton.hide(); 
-            }
-            if (this.args.showClose) { this.closeButton.show(); }
-            this.modal.modal('show');
-            
-            return this;
-        },
-
-        on: function(name, fn) {
-            this.log("adding listener to event " + name);
-            this._events[name] = fn;
-            return this;
-        },
-
-        trigger: function() {
-            var name = arguments[0];
-            var args = Array.prototype.slice.call(arguments);
-            args.shift();
-            args.unshift(this);
-
-            this.log("firing event " + name);
-            var handler = this._events[name];
-            if (handler === undefined && this.wizard !== undefined) {
-                handler = this.wizard._events[name];
-            }
-            var ret = null;
-
-            if (typeof(handler) == "function") {
-                this.log("found event handler, calling " + name);
-                try {
-                    ret = handler.apply(this, args);
-                }
-                catch (e) {
-                    this.log("event handler " + name + " had an exception");
-                }
-            }
-            else {
-                this.log("couldn't find an event handler for " + name);
-            }
-            return ret;
-        },
-
-
-        reset: function() {
-            this.log("resetting");
-            
-            this.updateProgressBar(0);
-            this.hideSubmitCards();
-
-            this.setCard(0);
-            this.lockCards();
-
-            this.enableNextButton();
-            this.showButtons();
-            
-            this.hidePopovers();
-
-            this.trigger("reset");
-            return this;
-        },
-        
-        /*
-         * this handles switching to the next card or previous card, taking
-         * care to skip over disabled cards
-         */
-        _abstractIncrementStep: function(direction, getNext) {
-            var current = this.getActiveCard();
-            var next;
-
-            if (current) {
-                /*
-                 * loop until we find a card that isn't disabled
-                 */
-                this.log("searching for valid next card");
-                while (true) {
-                    next = getNext(current);
-                    if (next) {
-                        this.log("looking at card", next.index);
-                        if (next.isDisabled()) {
-                            this.log("card " + next.index + " is disabled/locked, continuing");
-                            current = next;
-                            continue;
-                        }
-                        else {
-                            return this.setCard(current.index+direction);
-                        }
-                    }
-                    else {
-                        this.log("next card is not defined, breaking");
-                        break;
-                    }
-                }
-            }
-            else {
-                this.log("current card is undefined");
-            }
-        },
-
-
-        incrementCard: function() {
-            this.log("incrementing card");
-            var card = this._abstractIncrementStep(1, function(current){return current.next;});
-            this.trigger("incrementCard");
-            return card;
-        },
-
-        decrementCard: function() {
-            this.log("decrementing card");
-            var card = this._abstractIncrementStep(-1, function(current){return current.prev;});
-            this.trigger("decrementCard");
-            return card;
-        },
-
-        setCard: function(i) {
-            this.log("setting card to " + i);
-            this.hideSubmitCards();
-            var currentCard = this.getActiveCard();
-
-            if (this._submitting) {
-                this.log("we're submitting the wizard already, can't change cards");
-                return currentCard;
-            }
-
-            var newCard = this._cards[i];
-            if (newCard) {
-                if (newCard.isDisabled()) {
-                    this.log("new card is currently disabled, returning");
-                    return currentCard;
-                }
-
-                if (currentCard) {
-
-                    /*
-                     * here, we're only validating if we're going forward,
-                     * not if we're going backwards in a step
-                     */
-                    if (i > currentCard.index) {
-                        var cardToValidate = currentCard;
-                        var ok = false;
-
-                        /*
-                         * we need to loop over every card between our current
-                         * card and the card that we clicked, and re-validate
-                         * them.  if there's an error, we need to select the
-                         * first card to have an error
-                         */
-                        while (cardToValidate.index != newCard.index) {
-                            /*
-                             * unless we're validating the card that we're
-                             * leaving, we need to select the card, so that
-                             * any validators that trigger errorPopovers can
-                             * display correctly
-                             */
-                            if (cardToValidate.index != currentCard.index) {
-                                cardToValidate.prev.deselect();
-                                cardToValidate.prev.markVisited();
-                                cardToValidate.select();
-                            }
-                            ok = cardToValidate.validate();
-                            if (!ok) {
-                                return cardToValidate;
-                            }
-                            cardToValidate = cardToValidate.next;
-                        }
-
-                        cardToValidate.prev.deselect();
-                        cardToValidate.prev.markVisited();
-                    }
-
-                    currentCard.deselect();
-                    currentCard.markVisited();
-                }
-
-                newCard.select();
-
-                if (this.args.progressBarCurrent) {
-                    this.percentComplete = i * 100.0 / this._cards.length;
-                    this.updateProgressBar(this.percentComplete);					
-                }
-                else {
-                    var lastPercent = this.percentComplete;
-                    this.percentComplete = i * 100.0 / this._cards.length;
-                    this.percentComplete = Math.max(lastPercent, this.percentComplete);
-                    this.updateProgressBar(this.percentComplete);
-                }
-
-                return newCard;
-            }
-            else {
-                this.log("couldn't find card " + i);
-            }
-        },
-
-        updateProgressBar: function(percent) {
-            this.log("updating progress to " + percent + "%");
-            this.progress.css({width: percent + "%"});
-            this.percentComplete = percent;
-
-            this.trigger("progressBar", percent);
-
-            if (percent == 100) {
-                this.log("progress is 100, animating progress bar");
-                this.progressContainer.find('.progress').addClass("active");
-            }
-            else if (percent == 0) {
-                this.log("progress is 0, disabling animation");
-                this.progressContainer.find('.progress').removeClass("active");
-            }
-        },
-
-        getNextCard: function() {
-            var currentCard = this.getActiveCard();
-            if (currentCard) return currentCard.next;
-        },
-
-        lockCards: function() {
-            this.log("locking nav cards");
-            this.eachCard(function(i,card){card.unmarkVisited();});
-            return this;
-        },
-
-        disableCards: function() {
-            this.log("disabling all nav cards");
-            this.eachCard(function(i,card){card.disable();});
-            return this;
-        },
-
-        enableCards: function() {
-            this.log("enabling all nav cards");
-            this.eachCard(function(i,card){card.enable();});
-            return this;
-        },
-
-        hideCards: function() {
-            this.log("hiding cards");
-            this.eachCard(function(i,card){card.deselect();});
-            this.hideSubmitCards();
-            return this;
-        },
-
-        hideButtons: function() {
-            this.log("hiding buttons");
-            this.cancelButton.hide();
-            this.closeButton.hide();
-            this.nextButton.hide();
-            this.backButton.hide();
-            return this;
-        },
-
-        showButtons: function() {
-            this.log("showing buttons");
-            if (this.args.showCancel) { 
-                this.cancelButton.show(); 
-            } else {
-                this.cancelButton.hide(); 
-            }
-            if (this.args.showClose) { this.closeButton.show(); };
-            this.nextButton.show();
-            this.backButton.show();
-            return this;
-        },
-
-        getCard: function(el) {
-            var cardDOMEl = $(el).parents(".wizard-card").first()[0];
-            if (cardDOMEl) {
-                var foundCard = null;
-                this.eachCard(function(i, card) {
-                    if (cardDOMEl == card.el[0]) {
-                        foundCard = card;
-                        return false;
-                    }
-                    return true;
-                });
-                return foundCard;
-            }
-            else {
-                return null;
-            }
-        },
-
-        _createCards: function() {
-            var prev = null;
-            var next = null;
-            var currentCard = null;
-            var wizard = this;
-            var self = this;
-            
-            self.log("Creating Cards");
-
-            var cards = this.modal.find(".wizard-cards .wizard-card");
-            $.each(cards, function(i, card) {
-                card = $(card);
-
-                prev = currentCard;
-                currentCard = new WizardCard(wizard, card, i, prev, next);
-                self._cards.push(currentCard);
-                if (currentCard.name) {
-                    self.cards[currentCard.name] = currentCard;
-                }
-                if (prev) {prev.next = currentCard;}
-
-                self.modal.find(".wizard-steps .wizard-nav-list").append(currentCard.nav);
-            });
-        },
-
-        showSubmitCard: function(name) {
-            this.log("showing "+name+" submit card");
-
-            var card = this.el.find(".wizard-"+name);
-            if (card.length) {
-                this.hideCards();
-                this.el.find(".wizard-"+name).show();
-            }
-            else {
-                this.log("couldn't find submit card "+name);
-            }
-        },
-
-        hideSubmitCard: function(name) {
-            this.log("hiding "+name+" submit card");
-            this.el.find(".wizard-"+name).hide();
-        },
-
-        hideSubmitCards: function() {
-            var wizard = this;
-            $.each(["success", "error", "failure", "loading"], function(i, name) {
-                wizard.hideSubmitCard(name);
-            });
-        },
-
-        enableNextButton: function() {
-            this.log("enabling next button");
-            this.nextButton.removeAttr("disabled");
-            return this;
-        },
-
-        disableNextButton: function() {
-            this.log("disabling next button");
-            this.nextButton.attr("disabled", "disabled");
-            return this;
-        },
-
-        serializeArray: function() {
-            var form = this.form.serializeArray();
-            this.form.find('input[disabled][data-serialize="1"]').each(function() {
-                formObj = {
-                    name: $(this).attr('name'),
-                    value: $(this).val()
-                };
-                
-                form.push(formObj);
-            });
-            
-            return form;
-        },
-
-        serialize: function() {
-            var form = this.form.serialize();
-            this.form.find('input[disabled][data-serialize="1"]').each(function() {
-                form = form + '&' + $(this).attr('name') + '=' + $(this).val();
-            });
-            
-            return form;
-        },
-        
-        find: function(selector) {
-            return this.modal.find(selector);
-        },
-
-
-        /*
-         * the next 3 functions are to be called by the custom submit event
-         * handler.  the idea is that after you make an ajax call to submit
-         * your wizard data (or whatever it is you want to do at the end of
-         * the wizard), you call one of these 3 handlers to display a specific
-         * card for either success, failure, or error
-         */
-        submitSuccess: function() {
-            this.log("submit success");
-            this._submitting = false;
-            this.showSubmitCard("success");
-            this.trigger("submitSuccess");
-        },
-
-        submitFailure: function() {
-            this.log("submit failure");
-            this._submitting = false;
-            this.showSubmitCard("failure");
-            this.trigger("submitFailure");
-        },
-
-        submitError: function() {
-            this.log("submit error");
-            this._submitting = false;
-            this.showSubmitCard("error");
-            this.trigger("submitError");
-        },
-
-
-        _submit: function() {
-            this.log("submitting wizard");
-            this._submitting = true;
-
-            this.lockCards();
-            this.cancelButton.hide();
-            this.closeButton.hide();
-            this.backButton.hide();
-
-            this.showSubmitCard("loading");
-            this.updateProgressBar(100);
-
-            this.changeNextButton(this.args.buttons.submittingText, false);
-            this.disableNextButton();
-
-            var ret = this.trigger("submit");
-            this.trigger("loading");
-        },
-
-        _onNextClick: function() {
-            this.log("handling 'next' button click");
-            var currentCard = this.getActiveCard();
-            if (this._readyToSubmit && currentCard.validate()) {
-                this._submit();
-            }
-            else {
-                currentCard = this.incrementCard();
-            }
-        },
-
-        _onBackClick: function() {
-            this.log("handling 'back' button click");
-            var currentCard = this.decrementCard();
-        },
-
-        _handleNextClick: function(event) {
-            var wizard = event.data;
-            wizard._onNextClick.call(wizard);
-        },
-
-        _handleBackClick: function(event) {
-            var wizard = event.data;
-            wizard._onBackClick.call(wizard);
-        },
-
-
-        /*
-         * this function is attached by default to the wizard's "submit" event.
-         * if you choose to implement your own custom submit logic, you should
-         * copy how this function works
-         */
-        _defaultSubmit: function(wizard) {
-            $.ajax({
-                type: "POST",
-                url: wizard.args.submitUrl,
-                data: wizard.serialize(),
-                dataType: "json"
-            }).done(function(response) {
-                wizard.submitSuccess();
-                wizard.hideButtons();
-                wizard.updateProgressBar(0);
-            }).fail(function() {
-                wizard.submitFailure();
-                wizard.hideButtons();
-            });
-        }
-    };
-    
-    
-}(__webpack_provided_window_dot_jQuery));
-
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__("./node_modules/jquery/dist/jquery.js")))
-
-/***/ },
-
 /***/ "./node_modules/bootstrap-colorpicker/dist/js/bootstrap-colorpicker.js":
 /***/ function(module, exports, __webpack_require__) {
 
@@ -21031,346 +19852,7 @@ var DoSubscriber = (function (_super) {
 
 /***/ },
 
-/***/ "./node_modules/twitter-bootstrap-wizard/jquery.bootstrap.wizard.js":
-/***/ function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(jQuery) {/*!
- * jQuery twitter bootstrap wizard plugin
- * Examples and documentation at: http://github.com/VinceG/twitter-bootstrap-wizard
- * version 1.0
- * Requires jQuery v1.3.2 or later
- * Supports Bootstrap 2.2.x, 2.3.x, 3.0
- * Dual licensed under the MIT and GPL licenses:
- * http://www.opensource.org/licenses/mit-license.php
- * http://www.gnu.org/licenses/gpl.html
- * Authors: Vadim Vincent Gabriel (http://vadimg.com), Jason Gill (www.gilluminate.com)
- */
-;(function($) {
-var bootstrapWizardCreate = function(element, options) {
-	var element = $(element);
-	var obj = this;
-	
-	// selector skips any 'li' elements that do not contain a child with a tab data-toggle
-	var baseItemSelector = 'li:has([data-toggle="tab"])';
-	var historyStack = [];
-
-	// Merge options with defaults
-	var $settings = $.extend({}, $.fn.bootstrapWizard.defaults, options);
-	var $activeTab = null;
-	var $navigation = null;
-	
-	this.rebindClick = function(selector, fn)
-	{
-		selector.unbind('click', fn).bind('click', fn);
-	}
-
-	this.fixNavigationButtons = function() {
-		// Get the current active tab
-		if(!$activeTab.length) {
-			// Select first one
-			$navigation.find('a:first').tab('show');
-			$activeTab = $navigation.find(baseItemSelector + ':first');
-		}
-
-		// See if we're currently in the first/last then disable the previous and last buttons
-		$($settings.previousSelector, element).toggleClass('disabled', (obj.firstIndex() >= obj.currentIndex()));
-		$($settings.nextSelector, element).toggleClass('disabled', (obj.currentIndex() >= obj.navigationLength()));
-		$($settings.nextSelector, element).toggleClass('hidden', (obj.currentIndex() >= obj.navigationLength() && $($settings.finishSelector, element).length > 0));
-		$($settings.lastSelector, element).toggleClass('hidden', (obj.currentIndex() >= obj.navigationLength() && $($settings.finishSelector, element).length > 0));
-		$($settings.finishSelector, element).toggleClass('hidden', (obj.currentIndex() < obj.navigationLength()));
-		$($settings.backSelector, element).toggleClass('disabled', (historyStack.length == 0));
-		$($settings.backSelector, element).toggleClass('hidden', (obj.currentIndex() >= obj.navigationLength() && $($settings.finishSelector, element).length > 0));
-
-		// We are unbinding and rebinding to ensure single firing and no double-click errors
-		obj.rebindClick($($settings.nextSelector, element), obj.next);
-		obj.rebindClick($($settings.previousSelector, element), obj.previous);
-		obj.rebindClick($($settings.lastSelector, element), obj.last);
-		obj.rebindClick($($settings.firstSelector, element), obj.first);
-		obj.rebindClick($($settings.finishSelector, element), obj.finish);
-		obj.rebindClick($($settings.backSelector, element), obj.back);
-
-		if($settings.onTabShow && typeof $settings.onTabShow === 'function' && $settings.onTabShow($activeTab, $navigation, obj.currentIndex())===false){
-			return false;
-		}
-	};
-
-	this.next = function(e) {
-		// If we clicked the last then dont activate this
-		if(element.hasClass('last')) {
-			return false;
-		}
-
-		if($settings.onNext && typeof $settings.onNext === 'function' && $settings.onNext($activeTab, $navigation, obj.nextIndex())===false){
-			return false;
-		}
-
-		var formerIndex = obj.currentIndex();
-		$index = obj.nextIndex();
-
-	  // Did we click the last button
-		if($index > obj.navigationLength()) {
-		} else {
-		  historyStack.push(formerIndex);
-		  $navigation.find(baseItemSelector + ':eq(' + $index + ') a').tab('show');
-		}
-	};
-
-	this.previous = function(e) {
-		// If we clicked the first then dont activate this
-		if(element.hasClass('first')) {
-			return false;
-		}
-
-		if($settings.onPrevious && typeof $settings.onPrevious === 'function' && $settings.onPrevious($activeTab, $navigation, obj.previousIndex())===false){
-			return false;
-		}
-
-		var formerIndex = obj.currentIndex();
-		$index = obj.previousIndex();
-
-		if($index < 0) {
-		} else {
-		  historyStack.push(formerIndex);
-		  $navigation.find(baseItemSelector + ':eq(' + $index + ') a').tab('show');
-		}
-	};
-
-	this.first = function (e) {
-		if($settings.onFirst && typeof $settings.onFirst === 'function' && $settings.onFirst($activeTab, $navigation, obj.firstIndex())===false){
-			return false;
-		}
-
-		// If the element is disabled then we won't do anything
-		if(element.hasClass('disabled')) {
-			return false;
-		}
-
-		historyStack.push(obj.currentIndex());
-		$navigation.find(baseItemSelector + ':eq(0) a').tab('show');
-	};
-
-	this.last = function(e) {
-		if($settings.onLast && typeof $settings.onLast === 'function' && $settings.onLast($activeTab, $navigation, obj.lastIndex())===false){
-			return false;
-		}
-
-		// If the element is disabled then we won't do anything
-		if(element.hasClass('disabled')) {
-			return false;
-		}
-
-		historyStack.push(obj.currentIndex());
-		$navigation.find(baseItemSelector + ':eq(' + obj.navigationLength() + ') a').tab('show');
-	};
-
-	this.finish = function (e) {
-	  if ($settings.onFinish && typeof $settings.onFinish === 'function') {
-	    $settings.onFinish($activeTab, $navigation, obj.lastIndex());
-	  }
-	};
-
-	this.back = function () {
-	  if (historyStack.length == 0) {
-	    return null;
-	  }
-
-	  var formerIndex = historyStack.pop();
-	  if ($settings.onBack && typeof $settings.onBack === 'function' && $settings.onBack($activeTab, $navigation, formerIndex) === false) {
-	    historyStack.push(formerIndex);
-	    return false;
-	  }
-
-	  element.find(baseItemSelector + ':eq(' + formerIndex + ') a').tab('show');
-	};
-
-	this.currentIndex = function() {
-		return $navigation.find(baseItemSelector).index($activeTab);
-	};
-
-	this.firstIndex = function() {
-		return 0;
-	};
-
-	this.lastIndex = function() {
-		return obj.navigationLength();
-	};
-	this.getIndex = function(e) {
-		return $navigation.find(baseItemSelector).index(e);
-	};
-	this.nextIndex = function() {
-		return $navigation.find(baseItemSelector).index($activeTab) + 1;
-	};
-	this.previousIndex = function() {
-		return $navigation.find(baseItemSelector).index($activeTab) - 1;
-	};
-	this.navigationLength = function() {
-		return $navigation.find(baseItemSelector).length - 1;
-	};
-	this.activeTab = function() {
-		return $activeTab;
-	};
-	this.nextTab = function() {
-		return $navigation.find(baseItemSelector + ':eq('+(obj.currentIndex()+1)+')').length ? $navigation.find(baseItemSelector + ':eq('+(obj.currentIndex()+1)+')') : null;
-	};
-	this.previousTab = function() {
-		if(obj.currentIndex() <= 0) {
-			return null;
-		}
-		return $navigation.find(baseItemSelector + ':eq('+parseInt(obj.currentIndex()-1)+')');
-	};
-	this.show = function(index) {
-	  var tabToShow = isNaN(index) ? 
-      element.find(baseItemSelector + ' a[href=#' + index + ']') : 
-      element.find(baseItemSelector + ':eq(' + index + ') a');
-	  if (tabToShow.length > 0) {
-	    historyStack.push(obj.currentIndex());
-	    tabToShow.tab('show');
-	  }
-	};
-	this.disable = function (index) {
-		$navigation.find(baseItemSelector + ':eq('+index+')').addClass('disabled');
-	};
-	this.enable = function(index) {
-		$navigation.find(baseItemSelector + ':eq('+index+')').removeClass('disabled');
-	};
-	this.hide = function(index) {
-		$navigation.find(baseItemSelector + ':eq('+index+')').hide();
-	};
-	this.display = function(index) {
-		$navigation.find(baseItemSelector + ':eq('+index+')').show();
-	};
-	this.remove = function(args) {
-		var $index = args[0];
-		var $removeTabPane = typeof args[1] != 'undefined' ? args[1] : false;
-		var $item = $navigation.find(baseItemSelector + ':eq('+$index+')');
-
-		// Remove the tab pane first if needed
-		if($removeTabPane) {
-			var $href = $item.find('a').attr('href');
-			$($href).remove();
-		}
-
-		// Remove menu item
-		$item.remove();
-	};
-	
-	var innerTabClick = function (e) {
-		// Get the index of the clicked tab
-		var $ul = $navigation.find(baseItemSelector);
-		var clickedIndex = $ul.index($(e.currentTarget).parent(baseItemSelector));
-		var $clickedTab = $( $ul[clickedIndex] );
-		if($settings.onTabClick && typeof $settings.onTabClick === 'function' && $settings.onTabClick($activeTab, $navigation, obj.currentIndex(), clickedIndex, $clickedTab)===false){
-		    return false;
-		}
-	};
-	
-	var innerTabShown = function (e) {  // use shown instead of show to help prevent double firing
-		$element = $(e.target).parent();
-		var nextTab = $navigation.find(baseItemSelector).index($element);
-
-		// If it's disabled then do not change
-		if($element.hasClass('disabled')) {
-			return false;
-		}
-
-		if($settings.onTabChange && typeof $settings.onTabChange === 'function' && $settings.onTabChange($activeTab, $navigation, obj.currentIndex(), nextTab)===false){
-				return false;
-		}
-
-		$activeTab = $element; // activated tab
-		obj.fixNavigationButtons();
-	};
-	
-	this.resetWizard = function() {
-		
-		// remove the existing handlers
-		$('a[data-toggle="tab"]', $navigation).off('click', innerTabClick);
-		$('a[data-toggle="tab"]', $navigation).off('shown shown.bs.tab', innerTabShown);
-		
-		// reset elements based on current state of the DOM
-		$navigation = element.find('ul:first', element);
-		$activeTab = $navigation.find(baseItemSelector + '.active', element);
-		
-		// re-add handlers
-		$('a[data-toggle="tab"]', $navigation).on('click', innerTabClick);
-		$('a[data-toggle="tab"]', $navigation).on('shown shown.bs.tab', innerTabShown);
-		
-		obj.fixNavigationButtons();
-	};
-
-	$navigation = element.find('ul:first', element);
-	$activeTab = $navigation.find(baseItemSelector + '.active', element);
-
-	if(!$navigation.hasClass($settings.tabClass)) {
-		$navigation.addClass($settings.tabClass);
-	}
-
-	// Load onInit
-	if($settings.onInit && typeof $settings.onInit === 'function'){
-		$settings.onInit($activeTab, $navigation, 0);
-	}
-
-	// Load onShow
-	if($settings.onShow && typeof $settings.onShow === 'function'){
-		$settings.onShow($activeTab, $navigation, obj.nextIndex());
-	}
-
-	$('a[data-toggle="tab"]', $navigation).on('click', innerTabClick);
-
-	// attach to both shown and shown.bs.tab to support Bootstrap versions 2.3.2 and 3.0.0
-	$('a[data-toggle="tab"]', $navigation).on('shown shown.bs.tab', innerTabShown);
-};
-$.fn.bootstrapWizard = function(options) {
-	//expose methods
-	if (typeof options == 'string') {
-		var args = Array.prototype.slice.call(arguments, 1)
-		if(args.length === 1) {
-			args.toString();
-		}
-		return this.data('bootstrapWizard')[options](args);
-	}
-	return this.each(function(index){
-		var element = $(this);
-		// Return early if this element already has a plugin instance
-		if (element.data('bootstrapWizard')) return;
-		// pass options to plugin constructor
-		var wizard = new bootstrapWizardCreate(element, options);
-		// Store plugin object in this element's data
-		element.data('bootstrapWizard', wizard);
-		// and then trigger initial change
-		wizard.fixNavigationButtons();
-	});
-};
-
-// expose options
-$.fn.bootstrapWizard.defaults = {
-	tabClass:         'nav nav-pills',
-	nextSelector:     '.wizard li.next',
-	previousSelector: '.wizard li.previous',
-	firstSelector:    '.wizard li.first',
-	lastSelector:     '.wizard li.last',
-  finishSelector:   '.wizard li.finish',
-	backSelector:     '.wizard li.back',
-	onShow:           null,
-	onInit:           null,
-	onNext:           null,
-	onPrevious:       null,
-	onLast:           null,
-	onFirst:          null,
-  onFinish:         null,
-  onBack:           null,
-	onTabChange:      null, 
-	onTabClick:       null,
-	onTabShow:        null
-};
-
-})(jQuery);
-
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__("./node_modules/jquery/dist/jquery.js")))
-
-/***/ },
-
-/***/ "./src/app/userData/userData.component.ts":
+/***/ "./src/app/orderDetailsItems/orderDetailsItems.component.ts":
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21383,90 +19865,77 @@ var order_Service_1 = __webpack_require__("./src/services/order.Service.ts");
 var customer_Service_1 = __webpack_require__("./src/services/customer.Service.ts");
 var oneOrder_1 = __webpack_require__("./src/models/oneOrder.ts");
 var employee_Service_1 = __webpack_require__("./src/services/employee.Service.ts");
-var userDataComponent = (function () {
-    function userDataComponent(_orderService, _employeeService, _customerService) {
-        var _this = this;
+var orderDetailsItemsComponent = (function () {
+    function orderDetailsItemsComponent(_orderService, _employeeService, _customerService) {
         this._orderService = _orderService;
         this._employeeService = _employeeService;
         this._customerService = _customerService;
         this.orderFetched = false;
         this.allEmployees = [];
+        this._OrderItemModel = [];
+        this._orderitem = [];
+        this._orderitemModel1 = [];
         this.ordersList = [];
+        this.forms = false;
         this.IsAdmin = false;
-        this._employeeService.getEmployees().subscribe(function (a) {
-            _this.allEmployees = a.data;
-            console.log(_this.allEmployees);
-            $("#snackbar").html("Show data Successfully");
-            _this.showToast();
-        });
+        this.Pending = 'Pending';
+        this.Cutting = 'Cutting';
+        this.Stiching = 'Stiching';
+        this.Readyatwarehouse = 'Ready at warehouse';
+        this.ReachedOutlet = 'Reached Outlet';
+        this.notavailable = 'Unavailable Status';
+        this.name = [];
+        this.userObject = JSON.parse(localStorage.getItem('user'));
+        if (this.userObject.EmployeeRole == 1) {
+            this.IsAdmin = true;
+        }
     }
-    userDataComponent.prototype.addUser = function () {
-        var _this = this;
-        this._orderService.addUserSystem(this.Customer_Id, this.Name, this.Password).subscribe(function (res) {
-            console.log(res);
-            $("#snackbar").html("Create User Successfully");
-            _this.showToast();
-        });
-        this.Name = undefined;
-        this.Password = undefined;
-    };
-    userDataComponent.prototype.getCustomerId = function (Id) {
-        this.Customer_Id = Id;
-        console.log(this.Customer_Id);
-    };
-    userDataComponent.prototype.getOrdersByStatus = function (elem) {
+    orderDetailsItemsComponent.prototype.getOrdersByStatus = function (elem) {
         var _this = this;
         console.log(elem);
-        if (elem == 100) {
-            this._orderService.getOrdersListByOrderStatus(elem).subscribe(function (a) {
-                _this.ordersList = [];
-                _this.ordersList = a.data;
-                console.log(a);
-                for (var i = 0; i < _this.ordersList.length; i++) {
-                    _this.ordersList[i].DeliveryDate = new Date(_this.ordersList[i].DeliveryDate * 1000);
-                    _this.ordersList[i].TryDate = new Date(_this.ordersList[i].TryDate * 1000);
+        this._orderService.getOrderItem(elem).subscribe(function (a) {
+            _this._OrderItemModel = a.data;
+            for (var i = 0; i < a.data.length; i++) {
+                _this._OrderItemModel[i].MasterName = a.MasterName;
+                _this._OrderItemModel[i].SticherName = a.SticherName;
+                if (_this._OrderItemModel[i].OrderItemStatus == 100) {
+                    _this._OrderItemModel[i].OrderItemStatus = _this.Pending;
                 }
-            });
-        }
-        else if (elem == 200) {
-            this._orderService.getOrdersListByOrderStatus(elem).subscribe(function (a) {
-                _this.ordersList = [];
-                _this.ordersList = a.data;
-                console.log(a);
-                for (var i = 0; i < _this.ordersList.length; i++) {
-                    _this.ordersList[i].DeliveryDate = new Date(_this.ordersList[i].DeliveryDate * 1000);
-                    _this.ordersList[i].TryDate = new Date(_this.ordersList[i].TryDate * 1000);
+                else if (_this._OrderItemModel[i].OrderItemStatus == 200) {
+                    _this._OrderItemModel[i].OrderItemStatus = _this.Cutting;
                 }
-            });
-        }
-        else if (elem == 300) {
-            this._orderService.getOrdersListByOrderStatus(elem).subscribe(function (a) {
-                _this.ordersList = [];
-                _this.ordersList = a.data;
-                console.log(a);
-                for (var i = 0; i < _this.ordersList.length; i++) {
-                    _this.ordersList[i].DeliveryDate = new Date(_this.ordersList[i].DeliveryDate * 1000);
-                    _this.ordersList[i].TryDate = new Date(_this.ordersList[i].TryDate * 1000);
+                else if (_this._OrderItemModel[i].OrderItemStatus == 300) {
+                    _this._OrderItemModel[i].OrderItemStatus = _this.Stiching;
                 }
-            });
-        }
-        else {
-            this._orderService.getOrdersListByOrderStatus(elem).subscribe(function (a) {
-                _this.ordersList = [];
-                _this.ordersList = a.data;
-                console.log(a);
-                for (var i = 0; i < _this.ordersList.length; i++) {
-                    _this.ordersList[i].DeliveryDate = new Date(_this.ordersList[i].DeliveryDate * 1000);
-                    _this.ordersList[i].TryDate = new Date(_this.ordersList[i].TryDate * 1000);
+                else if (_this._OrderItemModel[i].OrderItemStatus == 400) {
+                    _this._OrderItemModel[i].OrderItemStatus = _this.Readyatwarehouse;
                 }
-            });
-        }
+                else if (_this._OrderItemModel[i].OrderItemStatus == 500) {
+                    _this._OrderItemModel[i].OrderItemStatus = _this.ReachedOutlet;
+                }
+                else {
+                    _this._OrderItemModel[i].OrderItemStatus = _this.notavailable;
+                }
+            }
+            console.log('orderitemdata', _this._OrderItemModel);
+            for (var i = 0; i < _this._OrderItemModel.length; i++) {
+                if (_this._OrderItemModel[i].DeliveryDate == undefined || _this._OrderItemModel[i].TryDate) {
+                    _this._OrderItemModel[i].DeliveryDate = new Date(_this._OrderItemModel[i].DeliveryDate * 1000);
+                    _this._OrderItemModel[i].TryDate = new Date(_this._OrderItemModel[i].TryDate * 1000);
+                }
+                _this.forms = true;
+            }
+        });
+        console.log('customerinfo', this._OrderItemModel);
     };
-    userDataComponent.prototype.setOrderStatus = function (elem, order) {
+    orderDetailsItemsComponent.prototype.setOrderStatus = function (elem, order) {
         var _this = this;
-        this._orderService.editOrderStatus(elem, order._id).subscribe(function (a) {
+        this._orderService.changeOrderItemStatus(order._id, elem).subscribe(function (a) {
             if (a.code == 200) {
-                $("#snackbar").html("Order Edited Successfully!");
+                var index = _this._OrderItemModel.findIndex(function (x) { return x._id == order._id; });
+                _this._OrderItemModel.splice(index, 1);
+                console.log('orderitemstatus', _this._OrderItemModel);
+                $("#snackbar").html("Order status change Successfully!");
                 _this.showToast();
             }
             else {
@@ -21475,7 +19944,7 @@ var userDataComponent = (function () {
             }
         });
     };
-    userDataComponent.prototype.viewThisOrder = function (order) {
+    orderDetailsItemsComponent.prototype.viewThisOrder = function (order) {
         var _this = this;
         this._orderService.getDetailsForOrder(order._id).subscribe(function (a) {
             console.log(a);
@@ -21488,11 +19957,11 @@ var userDataComponent = (function () {
             _this.allEmployees = a.data;
         });
     };
-    userDataComponent.prototype.getSelectedStitcher = function (elem) {
+    orderDetailsItemsComponent.prototype.getSelectedStitcher = function (elem) {
         this.StitcherId = elem;
         console.log(elem);
     };
-    userDataComponent.prototype.assignItems = function (orderItem) {
+    orderDetailsItemsComponent.prototype.assignItems = function (orderItem) {
         var _this = this;
         this._orderService.AssignThisOrderItemToUser(orderItem._id, this.userObject._id, this.StitcherId, this.MasterId).subscribe(function (a) {
             if (a.code == 200) {
@@ -21505,11 +19974,11 @@ var userDataComponent = (function () {
             }
         });
     };
-    userDataComponent.prototype.getSelectedMaster = function (elem) {
+    orderDetailsItemsComponent.prototype.getSelectedMaster = function (elem) {
         this.MasterId = elem;
         console.log(elem);
     };
-    userDataComponent.prototype.showToast = function () {
+    orderDetailsItemsComponent.prototype.showToast = function () {
         // Get the snackbar DIV
         var x = document.getElementById("snackbar");
         // Add the "show" class to DIV
@@ -21517,7 +19986,7 @@ var userDataComponent = (function () {
         // After 3 seconds, remove the show class from DIV
         setTimeout(function () { x.className = x.className.replace("show", ""); }, 3000);
     };
-    userDataComponent.prototype.ngOnInit = function () {
+    orderDetailsItemsComponent.prototype.ngOnInit = function () {
         this.OneOrder = new oneOrder_1.OneOrderModel();
         this.newOrder = new customerOrder_1.CustomerOrder();
         this.newOrderItem = new orderItem_1.OrderItem();
@@ -21525,25 +19994,25 @@ var userDataComponent = (function () {
         this.customerRefarances = [];
         this.productTypes = this._orderService.getProductTypes();
     };
-    userDataComponent = __decorate([
+    orderDetailsItemsComponent = __decorate([
         core_1.Component({
-            selector: 'user-data-system',
-            template: __webpack_require__("./src/app/userData/userData.template.html"),
-            styles: [__webpack_require__("./src/app/userData/userData.style.scss")],
+            selector: 'order-detail-items',
+            template: __webpack_require__("./src/app/orderDetailsItems/orderDetailsItems.template.html"),
+            styles: [__webpack_require__("./src/app/orderDetailsItems/orderDetailsItems.style.scss")],
             providers: [order_Service_1.OrderService, customer_Service_1.CustomerService, employee_Service_1.EmployeeService]
         }), 
         __metadata('design:paramtypes', [(typeof (_a = typeof order_Service_1.OrderService !== 'undefined' && order_Service_1.OrderService) === 'function' && _a) || Object, (typeof (_b = typeof employee_Service_1.EmployeeService !== 'undefined' && employee_Service_1.EmployeeService) === 'function' && _b) || Object, (typeof (_c = typeof customer_Service_1.CustomerService !== 'undefined' && customer_Service_1.CustomerService) === 'function' && _c) || Object])
-    ], userDataComponent);
-    return userDataComponent;
+    ], orderDetailsItemsComponent);
+    return orderDetailsItemsComponent;
     var _a, _b, _c;
 }());
-exports.userDataComponent = userDataComponent;
+exports.orderDetailsItemsComponent = orderDetailsItemsComponent;
 
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__("./node_modules/jquery/dist/jquery.js")))
 
 /***/ },
 
-/***/ "./src/app/userData/userData.module.ts":
+/***/ "./src/app/orderDetailsItems/orderDetailsItems.module.ts":
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21555,8 +20024,8 @@ var router_1 = __webpack_require__("./node_modules/@angular/router/index.js");
 __webpack_require__("./node_modules/bootstrap-markdown/js/bootstrap-markdown.js");
 __webpack_require__("./node_modules/bootstrap-select/dist/js/bootstrap-select.js");
 __webpack_require__("./node_modules/parsleyjs/dist/parsley.js");
-__webpack_require__("./node_modules/bootstrap-application-wizard/src/bootstrap-wizard.js");
-__webpack_require__("./node_modules/twitter-bootstrap-wizard/jquery.bootstrap.wizard.js");
+__webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"bootstrap-application-wizard/src/bootstrap-wizard.js\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
+__webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"twitter-bootstrap-wizard/jquery.bootstrap.wizard.js\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 __webpack_require__("./node_modules/jasny-bootstrap/docs/assets/js/vendor/holder.js");
 __webpack_require__("./node_modules/jasny-bootstrap/js/fileinput.js");
 __webpack_require__("./node_modules/jasny-bootstrap/js/inputmask.js");
@@ -21569,9 +20038,9 @@ __webpack_require__("./node_modules/jasny-bootstrap/docs/assets/js/vendor/holder
 __webpack_require__("./node_modules/jasny-bootstrap/js/fileinput.js");
 __webpack_require__("./node_modules/jasny-bootstrap/js/inputmask.js");
 var ng2_datetime_1 = __webpack_require__("./node_modules/ng2-datetime/ng2-datetime.ts");
-var userData_component_1 = __webpack_require__("./src/app/userData/userData.component.ts");
+var orderDetailsItems_component_1 = __webpack_require__("./src/app/orderDetailsItems/orderDetailsItems.component.ts");
 exports.routes = [
-    { path: '', component: userData_component_1.userDataComponent, pathMatch: 'full' }
+    { path: '', component: orderDetailsItems_component_1.orderDetailsItemsComponent, pathMatch: 'full' }
 ];
 var orderDetailsItemsModule = (function () {
     function orderDetailsItemsModule() {
@@ -21580,7 +20049,7 @@ var orderDetailsItemsModule = (function () {
     orderDetailsItemsModule = __decorate([
         core_1.NgModule({
             declarations: [
-                userData_component_1.userDataComponent
+                orderDetailsItems_component_1.orderDetailsItemsComponent
             ],
             imports: [
                 common_1.CommonModule,
@@ -21599,17 +20068,17 @@ exports.default = orderDetailsItemsModule;
 
 /***/ },
 
-/***/ "./src/app/userData/userData.style.scss":
+/***/ "./src/app/orderDetailsItems/orderDetailsItems.style.scss":
 /***/ function(module, exports) {
 
-module.exports = ".custom-select {\n  width: 100%;\n  padding: 10px; }\n\n.add-btn {\n  border: none;\n  height: 46px;\n  padding: 10px 2px;\n  min-width: 250px;\n  margin: 0 auto; }\n\n/*!\r\n * Datepicker for Bootstrap v1.6.1 (https://github.com/eternicode/bootstrap-datepicker)\r\n *\r\n * Copyright 2012 Stefan Petre\r\n * Improvements by Andrew Rowls\r\n * Licensed under the Apache License v2.0 (http://www.apache.org/licenses/LICENSE-2.0)\r\n */\n.datepicker {\n  border-radius: 4px;\n  direction: ltr; }\n\n.datepicker-inline {\n  width: 220px; }\n\n.datepicker.datepicker-rtl {\n  direction: rtl; }\n\n.datepicker.datepicker-rtl table tr td span {\n  float: right; }\n\n.datepicker-dropdown {\n  top: 0;\n  left: 0;\n  padding: 4px; }\n\n.datepicker-dropdown:before {\n  content: '';\n  display: inline-block;\n  border-left: 7px solid transparent;\n  border-right: 7px solid transparent;\n  border-bottom: 7px solid rgba(0, 0, 0, 0.15);\n  border-top: 0;\n  border-bottom-color: rgba(0, 0, 0, 0.2);\n  position: absolute; }\n\n.datepicker-dropdown:after {\n  content: '';\n  display: inline-block;\n  border-left: 6px solid transparent;\n  border-right: 6px solid transparent;\n  border-bottom: 6px solid #fff;\n  border-top: 0;\n  position: absolute; }\n\n.datepicker-dropdown.datepicker-orient-left:before {\n  left: 6px; }\n\n.datepicker-dropdown.datepicker-orient-left:after {\n  left: 7px; }\n\n.datepicker-dropdown.datepicker-orient-right:before {\n  right: 6px; }\n\n.datepicker-dropdown.datepicker-orient-right:after {\n  right: 7px; }\n\n.datepicker-dropdown.datepicker-orient-bottom:before {\n  top: -7px; }\n\n.datepicker-dropdown.datepicker-orient-bottom:after {\n  top: -6px; }\n\n.datepicker-dropdown.datepicker-orient-top:before {\n  bottom: -7px;\n  border-bottom: 0;\n  border-top: 7px solid rgba(0, 0, 0, 0.15); }\n\n.datepicker-dropdown.datepicker-orient-top:after {\n  bottom: -6px;\n  border-bottom: 0;\n  border-top: 6px solid #fff; }\n\n.datepicker table {\n  margin: 0;\n  -webkit-touch-callout: none;\n  -webkit-user-select: none;\n  -khtml-user-select: none;\n  -moz-user-select: none;\n  -ms-user-select: none;\n  user-select: none; }\n\n.datepicker table tr td, .datepicker table tr th {\n  text-align: center;\n  width: 30px;\n  height: 30px;\n  border-radius: 4px;\n  border: none; }\n\n.table-striped .datepicker table tr td, .table-striped .datepicker table tr th {\n  background-color: transparent; }\n\n.datepicker table tr td.new, .datepicker table tr td.old {\n  color: #777; }\n\n.datepicker table tr td.day:hover, .datepicker table tr td.focused {\n  background: #eee;\n  cursor: pointer; }\n\n.datepicker table tr td.disabled, .datepicker table tr td.disabled:hover {\n  background: 0 0;\n  color: #777;\n  cursor: default; }\n\n.datepicker table tr td.highlighted {\n  color: #000;\n  background-color: #d9edf7;\n  border-color: #85c5e5;\n  border-radius: 0; }\n\n.datepicker table tr td.highlighted.focus, .datepicker table tr td.highlighted:focus {\n  color: #000;\n  background-color: #afd9ee;\n  border-color: #298fc2; }\n\n.datepicker table tr td.highlighted:hover {\n  color: #000;\n  background-color: #afd9ee;\n  border-color: #52addb; }\n\n.datepicker table tr td.highlighted.active, .datepicker table tr td.highlighted:active {\n  color: #000;\n  background-color: #afd9ee;\n  border-color: #52addb; }\n\n.datepicker table tr td.highlighted.active.focus, .datepicker table tr td.highlighted.active:focus, .datepicker table tr td.highlighted.active:hover, .datepicker table tr td.highlighted:active.focus, .datepicker table tr td.highlighted:active:focus, .datepicker table tr td.highlighted:active:hover {\n  color: #000;\n  background-color: #91cbe8;\n  border-color: #298fc2; }\n\n.datepicker table tr td.highlighted.disabled.focus, .datepicker table tr td.highlighted.disabled:focus, .datepicker table tr td.highlighted.disabled:hover, .datepicker table tr td.highlighted[disabled].focus, .datepicker table tr td.highlighted[disabled]:focus, .datepicker table tr td.highlighted[disabled]:hover, fieldset[disabled] .datepicker table tr td.highlighted.focus, fieldset[disabled] .datepicker table tr td.highlighted:focus, fieldset[disabled] .datepicker table tr td.highlighted:hover {\n  background-color: #d9edf7;\n  border-color: #85c5e5; }\n\n.datepicker table tr td.highlighted.focused {\n  background: #afd9ee; }\n\n.datepicker table tr td.highlighted.disabled, .datepicker table tr td.highlighted.disabled:active {\n  background: #d9edf7;\n  color: #777; }\n\n.datepicker table tr td.today {\n  color: #000;\n  background-color: #ffdb99;\n  border-color: #ffb733; }\n\n.datepicker table tr td.today.focus, .datepicker table tr td.today:focus {\n  color: #000;\n  background-color: #ffc966;\n  border-color: #b37400; }\n\n.datepicker table tr td.today:hover {\n  color: #000;\n  background-color: #ffc966;\n  border-color: #f59e00; }\n\n.datepicker table tr td.today.active, .datepicker table tr td.today:active {\n  color: #000;\n  background-color: #ffc966;\n  border-color: #f59e00; }\n\n.datepicker table tr td.today.active.focus, .datepicker table tr td.today.active:focus, .datepicker table tr td.today.active:hover, .datepicker table tr td.today:active.focus, .datepicker table tr td.today:active:focus, .datepicker table tr td.today:active:hover {\n  color: #000;\n  background-color: #ffbc42;\n  border-color: #b37400; }\n\n.datepicker table tr td.today.disabled.focus, .datepicker table tr td.today.disabled:focus, .datepicker table tr td.today.disabled:hover, .datepicker table tr td.today[disabled].focus, .datepicker table tr td.today[disabled]:focus, .datepicker table tr td.today[disabled]:hover, fieldset[disabled] .datepicker table tr td.today.focus, fieldset[disabled] .datepicker table tr td.today:focus, fieldset[disabled] .datepicker table tr td.today:hover {\n  background-color: #ffdb99;\n  border-color: #ffb733; }\n\n.datepicker table tr td.today.focused {\n  background: #ffc966; }\n\n.datepicker table tr td.today.disabled, .datepicker table tr td.today.disabled:active {\n  background: #ffdb99;\n  color: #777; }\n\n.datepicker table tr td.range {\n  color: #000;\n  background-color: #eee;\n  border-color: #bbb;\n  border-radius: 0; }\n\n.datepicker table tr td.range.focus, .datepicker table tr td.range:focus {\n  color: #000;\n  background-color: #d5d5d5;\n  border-color: #7c7c7c; }\n\n.datepicker table tr td.range:hover {\n  color: #000;\n  background-color: #d5d5d5;\n  border-color: #9d9d9d; }\n\n.datepicker table tr td.range.active, .datepicker table tr td.range:active {\n  color: #000;\n  background-color: #d5d5d5;\n  border-color: #9d9d9d; }\n\n.datepicker table tr td.range.active.focus, .datepicker table tr td.range.active:focus, .datepicker table tr td.range.active:hover, .datepicker table tr td.range:active.focus, .datepicker table tr td.range:active:focus, .datepicker table tr td.range:active:hover {\n  color: #000;\n  background-color: #c3c3c3;\n  border-color: #7c7c7c; }\n\n.datepicker table tr td.range.disabled.focus, .datepicker table tr td.range.disabled:focus, .datepicker table tr td.range.disabled:hover, .datepicker table tr td.range[disabled].focus, .datepicker table tr td.range[disabled]:focus, .datepicker table tr td.range[disabled]:hover, fieldset[disabled] .datepicker table tr td.range.focus, fieldset[disabled] .datepicker table tr td.range:focus, fieldset[disabled] .datepicker table tr td.range:hover {\n  background-color: #eee;\n  border-color: #bbb; }\n\n.datepicker table tr td.range.focused {\n  background: #d5d5d5; }\n\n.datepicker table tr td.range.disabled, .datepicker table tr td.range.disabled:active {\n  background: #eee;\n  color: #777; }\n\n.datepicker table tr td.range.highlighted {\n  color: #000;\n  background-color: #e4eef3;\n  border-color: #9dc1d3; }\n\n.datepicker table tr td.range.highlighted.focus, .datepicker table tr td.range.highlighted:focus {\n  color: #000;\n  background-color: #c1d7e3;\n  border-color: #4b88a6; }\n\n.datepicker table tr td.range.highlighted:hover {\n  color: #000;\n  background-color: #c1d7e3;\n  border-color: #73a6c0; }\n\n.datepicker table tr td.range.highlighted.active, .datepicker table tr td.range.highlighted:active {\n  color: #000;\n  background-color: #c1d7e3;\n  border-color: #73a6c0; }\n\n.datepicker table tr td.range.highlighted.active.focus, .datepicker table tr td.range.highlighted.active:focus, .datepicker table tr td.range.highlighted.active:hover, .datepicker table tr td.range.highlighted:active.focus, .datepicker table tr td.range.highlighted:active:focus, .datepicker table tr td.range.highlighted:active:hover {\n  color: #000;\n  background-color: #a8c8d8;\n  border-color: #4b88a6; }\n\n.datepicker table tr td.range.highlighted.disabled.focus, .datepicker table tr td.range.highlighted.disabled:focus, .datepicker table tr td.range.highlighted.disabled:hover, .datepicker table tr td.range.highlighted[disabled].focus, .datepicker table tr td.range.highlighted[disabled]:focus, .datepicker table tr td.range.highlighted[disabled]:hover, fieldset[disabled] .datepicker table tr td.range.highlighted.focus, fieldset[disabled] .datepicker table tr td.range.highlighted:focus, fieldset[disabled] .datepicker table tr td.range.highlighted:hover {\n  background-color: #e4eef3;\n  border-color: #9dc1d3; }\n\n.datepicker table tr td.range.highlighted.focused {\n  background: #c1d7e3; }\n\n.datepicker table tr td.range.highlighted.disabled, .datepicker table tr td.range.highlighted.disabled:active {\n  background: #e4eef3;\n  color: #777; }\n\n.datepicker table tr td.range.today {\n  color: #000;\n  background-color: #f7ca77;\n  border-color: #f1a417; }\n\n.datepicker table tr td.range.today.focus, .datepicker table tr td.range.today:focus {\n  color: #000;\n  background-color: #f4b747;\n  border-color: #815608; }\n\n.datepicker table tr td.range.today:hover {\n  color: #000;\n  background-color: #f4b747;\n  border-color: #bf800c; }\n\n.datepicker table tr td.range.today.active, .datepicker table tr td.range.today:active {\n  color: #000;\n  background-color: #f4b747;\n  border-color: #bf800c; }\n\n.datepicker table tr td.range.today.active.focus, .datepicker table tr td.range.today.active:focus, .datepicker table tr td.range.today.active:hover, .datepicker table tr td.range.today:active.focus, .datepicker table tr td.range.today:active:focus, .datepicker table tr td.range.today:active:hover {\n  color: #000;\n  background-color: #f2aa25;\n  border-color: #815608; }\n\n.datepicker table tr td.range.today.disabled.focus, .datepicker table tr td.range.today.disabled:focus, .datepicker table tr td.range.today.disabled:hover, .datepicker table tr td.range.today[disabled].focus, .datepicker table tr td.range.today[disabled]:focus, .datepicker table tr td.range.today[disabled]:hover, fieldset[disabled] .datepicker table tr td.range.today.focus, fieldset[disabled] .datepicker table tr td.range.today:focus, fieldset[disabled] .datepicker table tr td.range.today:hover {\n  background-color: #f7ca77;\n  border-color: #f1a417; }\n\n.datepicker table tr td.range.today.disabled, .datepicker table tr td.range.today.disabled:active {\n  background: #f7ca77;\n  color: #777; }\n\n.datepicker table tr td.selected, .datepicker table tr td.selected.highlighted {\n  color: #fff;\n  background-color: #777;\n  border-color: #555;\n  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25); }\n\n.datepicker table tr td.selected.focus, .datepicker table tr td.selected.highlighted.focus, .datepicker table tr td.selected.highlighted:focus, .datepicker table tr td.selected:focus {\n  color: #fff;\n  background-color: #5e5e5e;\n  border-color: #161616; }\n\n.datepicker table tr td.selected.highlighted:hover, .datepicker table tr td.selected:hover {\n  color: #fff;\n  background-color: #5e5e5e;\n  border-color: #373737; }\n\n.datepicker table tr td.selected.active, .datepicker table tr td.selected.highlighted.active, .datepicker table tr td.selected.highlighted:active, .datepicker table tr td.selected:active {\n  color: #fff;\n  background-color: #5e5e5e;\n  border-color: #373737; }\n\n.datepicker table tr td.selected.active.focus, .datepicker table tr td.selected.active:focus, .datepicker table tr td.selected.active:hover, .datepicker table tr td.selected.highlighted.active.focus, .datepicker table tr td.selected.highlighted.active:focus, .datepicker table tr td.selected.highlighted.active:hover, .datepicker table tr td.selected.highlighted:active.focus, .datepicker table tr td.selected.highlighted:active:focus, .datepicker table tr td.selected.highlighted:active:hover, .datepicker table tr td.selected:active.focus, .datepicker table tr td.selected:active:focus, .datepicker table tr td.selected:active:hover {\n  color: #fff;\n  background-color: #4c4c4c;\n  border-color: #161616; }\n\n.datepicker table tr td.selected.disabled.focus, .datepicker table tr td.selected.disabled:focus, .datepicker table tr td.selected.disabled:hover, .datepicker table tr td.selected.highlighted.disabled.focus, .datepicker table tr td.selected.highlighted.disabled:focus, .datepicker table tr td.selected.highlighted.disabled:hover, .datepicker table tr td.selected.highlighted[disabled].focus, .datepicker table tr td.selected.highlighted[disabled]:focus, .datepicker table tr td.selected.highlighted[disabled]:hover, .datepicker table tr td.selected[disabled].focus, .datepicker table tr td.selected[disabled]:focus, .datepicker table tr td.selected[disabled]:hover, fieldset[disabled] .datepicker table tr td.selected.focus, fieldset[disabled] .datepicker table tr td.selected.highlighted.focus, fieldset[disabled] .datepicker table tr td.selected.highlighted:focus, fieldset[disabled] .datepicker table tr td.selected.highlighted:hover, fieldset[disabled] .datepicker table tr td.selected:focus, fieldset[disabled] .datepicker table tr td.selected:hover {\n  background-color: #777;\n  border-color: #555; }\n\n.datepicker table tr td.active, .datepicker table tr td.active.highlighted {\n  color: #fff;\n  background-color: #337ab7;\n  border-color: #2e6da4;\n  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25); }\n\n.datepicker table tr td.active.focus, .datepicker table tr td.active.highlighted.focus, .datepicker table tr td.active.highlighted:focus, .datepicker table tr td.active:focus {\n  color: #fff;\n  background-color: #286090;\n  border-color: #122b40; }\n\n.datepicker table tr td.active.highlighted:hover, .datepicker table tr td.active:hover {\n  color: #fff;\n  background-color: #286090;\n  border-color: #204d74; }\n\n.datepicker table tr td.active.active, .datepicker table tr td.active.highlighted.active, .datepicker table tr td.active.highlighted:active, .datepicker table tr td.active:active {\n  color: #fff;\n  background-color: #286090;\n  border-color: #204d74; }\n\n.datepicker table tr td.active.active.focus, .datepicker table tr td.active.active:focus, .datepicker table tr td.active.active:hover, .datepicker table tr td.active.highlighted.active.focus, .datepicker table tr td.active.highlighted.active:focus, .datepicker table tr td.active.highlighted.active:hover, .datepicker table tr td.active.highlighted:active.focus, .datepicker table tr td.active.highlighted:active:focus, .datepicker table tr td.active.highlighted:active:hover, .datepicker table tr td.active:active.focus, .datepicker table tr td.active:active:focus, .datepicker table tr td.active:active:hover {\n  color: #fff;\n  background-color: #204d74;\n  border-color: #122b40; }\n\n.datepicker table tr td.active.disabled.focus, .datepicker table tr td.active.disabled:focus, .datepicker table tr td.active.disabled:hover, .datepicker table tr td.active.highlighted.disabled.focus, .datepicker table tr td.active.highlighted.disabled:focus, .datepicker table tr td.active.highlighted.disabled:hover, .datepicker table tr td.active.highlighted[disabled].focus, .datepicker table tr td.active.highlighted[disabled]:focus, .datepicker table tr td.active.highlighted[disabled]:hover, .datepicker table tr td.active[disabled].focus, .datepicker table tr td.active[disabled]:focus, .datepicker table tr td.active[disabled]:hover, fieldset[disabled] .datepicker table tr td.active.focus, fieldset[disabled] .datepicker table tr td.active.highlighted.focus, fieldset[disabled] .datepicker table tr td.active.highlighted:focus, fieldset[disabled] .datepicker table tr td.active.highlighted:hover, fieldset[disabled] .datepicker table tr td.active:focus, fieldset[disabled] .datepicker table tr td.active:hover {\n  background-color: #337ab7;\n  border-color: #2e6da4; }\n\n.datepicker table tr td span {\n  display: block;\n  width: 23%;\n  height: 54px;\n  line-height: 54px;\n  float: left;\n  margin: 1%;\n  cursor: pointer;\n  border-radius: 4px; }\n\n.datepicker table tr td span.focused, .datepicker table tr td span:hover {\n  background: #eee; }\n\n.datepicker table tr td span.disabled, .datepicker table tr td span.disabled:hover {\n  background: 0 0;\n  color: #777;\n  cursor: default; }\n\n.datepicker table tr td span.active, .datepicker table tr td span.active.disabled, .datepicker table tr td span.active.disabled:hover, .datepicker table tr td span.active:hover {\n  color: #fff;\n  background-color: #337ab7;\n  border-color: #2e6da4;\n  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25); }\n\n.datepicker table tr td span.active.disabled.focus, .datepicker table tr td span.active.disabled:focus, .datepicker table tr td span.active.disabled:hover.focus, .datepicker table tr td span.active.disabled:hover:focus, .datepicker table tr td span.active.focus, .datepicker table tr td span.active:focus, .datepicker table tr td span.active:hover.focus, .datepicker table tr td span.active:hover:focus {\n  color: #fff;\n  background-color: #286090;\n  border-color: #122b40; }\n\n.datepicker table tr td span.active.disabled:hover, .datepicker table tr td span.active.disabled:hover:hover, .datepicker table tr td span.active:hover, .datepicker table tr td span.active:hover:hover {\n  color: #fff;\n  background-color: #286090;\n  border-color: #204d74; }\n\n.datepicker table tr td span.active.active, .datepicker table tr td span.active.disabled.active, .datepicker table tr td span.active.disabled:active, .datepicker table tr td span.active.disabled:hover.active, .datepicker table tr td span.active.disabled:hover:active, .datepicker table tr td span.active:active, .datepicker table tr td span.active:hover.active, .datepicker table tr td span.active:hover:active {\n  color: #fff;\n  background-color: #286090;\n  border-color: #204d74; }\n\n.datepicker table tr td span.active.active.focus, .datepicker table tr td span.active.active:focus, .datepicker table tr td span.active.active:hover, .datepicker table tr td span.active.disabled.active.focus, .datepicker table tr td span.active.disabled.active:focus, .datepicker table tr td span.active.disabled.active:hover, .datepicker table tr td span.active.disabled:active.focus, .datepicker table tr td span.active.disabled:active:focus, .datepicker table tr td span.active.disabled:active:hover, .datepicker table tr td span.active.disabled:hover.active.focus, .datepicker table tr td span.active.disabled:hover.active:focus, .datepicker table tr td span.active.disabled:hover.active:hover, .datepicker table tr td span.active.disabled:hover:active.focus, .datepicker table tr td span.active.disabled:hover:active:focus, .datepicker table tr td span.active.disabled:hover:active:hover, .datepicker table tr td span.active:active.focus, .datepicker table tr td span.active:active:focus, .datepicker table tr td span.active:active:hover, .datepicker table tr td span.active:hover.active.focus, .datepicker table tr td span.active:hover.active:focus, .datepicker table tr td span.active:hover.active:hover, .datepicker table tr td span.active:hover:active.focus, .datepicker table tr td span.active:hover:active:focus, .datepicker table tr td span.active:hover:active:hover {\n  color: #fff;\n  background-color: #204d74;\n  border-color: #122b40; }\n\n.datepicker table tr td span.active.disabled.disabled.focus, .datepicker table tr td span.active.disabled.disabled:focus, .datepicker table tr td span.active.disabled.disabled:hover, .datepicker table tr td span.active.disabled.focus, .datepicker table tr td span.active.disabled:focus, .datepicker table tr td span.active.disabled:hover, .datepicker table tr td span.active.disabled:hover.disabled.focus, .datepicker table tr td span.active.disabled:hover.disabled:focus, .datepicker table tr td span.active.disabled:hover.disabled:hover, .datepicker table tr td span.active.disabled:hover[disabled].focus, .datepicker table tr td span.active.disabled:hover[disabled]:focus, .datepicker table tr td span.active.disabled:hover[disabled]:hover, .datepicker table tr td span.active.disabled[disabled].focus, .datepicker table tr td span.active.disabled[disabled]:focus, .datepicker table tr td span.active.disabled[disabled]:hover, .datepicker table tr td span.active:hover.disabled.focus, .datepicker table tr td span.active:hover.disabled:focus, .datepicker table tr td span.active:hover.disabled:hover, .datepicker table tr td span.active:hover[disabled].focus, .datepicker table tr td span.active:hover[disabled]:focus, .datepicker table tr td span.active:hover[disabled]:hover, .datepicker table tr td span.active[disabled].focus, .datepicker table tr td span.active[disabled]:focus, .datepicker table tr td span.active[disabled]:hover, fieldset[disabled] .datepicker table tr td span.active.disabled.focus, fieldset[disabled] .datepicker table tr td span.active.disabled:focus, fieldset[disabled] .datepicker table tr td span.active.disabled:hover, fieldset[disabled] .datepicker table tr td span.active.disabled:hover.focus, fieldset[disabled] .datepicker table tr td span.active.disabled:hover:focus, fieldset[disabled] .datepicker table tr td span.active.disabled:hover:hover, fieldset[disabled] .datepicker table tr td span.active.focus, fieldset[disabled] .datepicker table tr td span.active:focus, fieldset[disabled] .datepicker table tr td span.active:hover, fieldset[disabled] .datepicker table tr td span.active:hover.focus, fieldset[disabled] .datepicker table tr td span.active:hover:focus, fieldset[disabled] .datepicker table tr td span.active:hover:hover {\n  background-color: #337ab7;\n  border-color: #2e6da4; }\n\n.datepicker table tr td span.new, .datepicker table tr td span.old {\n  color: #777; }\n\n.datepicker .datepicker-switch {\n  width: 145px; }\n\n.datepicker .datepicker-switch, .datepicker .next, .datepicker .prev, .datepicker tfoot tr th {\n  cursor: pointer; }\n\n.datepicker .datepicker-switch:hover, .datepicker .next:hover, .datepicker .prev:hover, .datepicker tfoot tr th:hover {\n  background: #eee; }\n\n.datepicker .cw {\n  font-size: 10px;\n  width: 12px;\n  padding: 0 2px 0 5px;\n  vertical-align: middle; }\n\n.input-group.date .input-group-addon {\n  cursor: pointer; }\n\n.input-daterange {\n  width: 100%; }\n\n.input-daterange input {\n  text-align: center; }\n\n.input-daterange input:first-child {\n  border-radius: 3px 0 0 3px; }\n\n.input-daterange input:last-child {\n  border-radius: 0 3px 3px 0; }\n\n.input-daterange .input-group-addon {\n  width: auto;\n  min-width: 16px;\n  padding: 4px 5px;\n  line-height: 1.42857143;\n  text-shadow: 0 1px 0 #fff;\n  border-width: 1px 0;\n  margin-left: -5px;\n  margin-right: -5px; }\n\n/*# sourceMappingURL=bootstrap-datepicker3.min.css.map */\n/*!\r\n * Timepicker Component for Twitter Bootstrap\r\n *\r\n * Copyright 2013 Joris de Wit\r\n *\r\n * Contributors https://github.com/jdewit/bootstrap-timepicker/graphs/contributors\r\n *\r\n * For the full copyright and license information, please view the LICENSE\r\n * file that was distributed with this source code.\r\n */\n.bootstrap-timepicker {\n  position: relative; }\n\n.bootstrap-timepicker.pull-right .bootstrap-timepicker-widget.dropdown-menu {\n  left: auto;\n  right: 0; }\n\n.bootstrap-timepicker.pull-right .bootstrap-timepicker-widget.dropdown-menu:before {\n  left: auto;\n  right: 12px; }\n\n.bootstrap-timepicker.pull-right .bootstrap-timepicker-widget.dropdown-menu:after {\n  left: auto;\n  right: 13px; }\n\n.bootstrap-timepicker .input-group-addon {\n  cursor: pointer; }\n\n.bootstrap-timepicker .input-group-addon i {\n  display: inline-block;\n  width: 16px;\n  height: 16px; }\n\n.bootstrap-timepicker-widget.dropdown-menu {\n  padding: 4px; }\n\n.bootstrap-timepicker-widget.dropdown-menu.open {\n  display: inline-block; }\n\n.bootstrap-timepicker-widget.dropdown-menu:before {\n  border-bottom: 7px solid rgba(0, 0, 0, 0.2);\n  border-left: 7px solid transparent;\n  border-right: 7px solid transparent;\n  content: \"\";\n  display: inline-block;\n  position: absolute; }\n\n.bootstrap-timepicker-widget.dropdown-menu:after {\n  border-bottom: 6px solid #fff;\n  border-left: 6px solid transparent;\n  border-right: 6px solid transparent;\n  content: \"\";\n  display: inline-block;\n  position: absolute; }\n\n.bootstrap-timepicker-widget.timepicker-orient-left:before {\n  left: 6px; }\n\n.bootstrap-timepicker-widget.timepicker-orient-left:after {\n  left: 7px; }\n\n.bootstrap-timepicker-widget.timepicker-orient-right:before {\n  right: 6px; }\n\n.bootstrap-timepicker-widget.timepicker-orient-right:after {\n  right: 7px; }\n\n.bootstrap-timepicker-widget.timepicker-orient-top:before {\n  top: -7px; }\n\n.bootstrap-timepicker-widget.timepicker-orient-top:after {\n  top: -6px; }\n\n.bootstrap-timepicker-widget.timepicker-orient-bottom:before {\n  bottom: -7px;\n  border-bottom: 0;\n  border-top: 7px solid #999; }\n\n.bootstrap-timepicker-widget.timepicker-orient-bottom:after {\n  bottom: -6px;\n  border-bottom: 0;\n  border-top: 6px solid #fff; }\n\n.bootstrap-timepicker-widget a.btn, .bootstrap-timepicker-widget input {\n  border-radius: 4px; }\n\n.bootstrap-timepicker-widget table {\n  width: 100%;\n  margin: 0; }\n\n.bootstrap-timepicker-widget table td {\n  text-align: center;\n  height: 30px;\n  margin: 0;\n  padding: 2px; }\n\n.bootstrap-timepicker-widget table td:not(.separator) {\n  min-width: 30px; }\n\n.bootstrap-timepicker-widget table td span {\n  width: 100%; }\n\n.bootstrap-timepicker-widget table td a {\n  border: 1px transparent solid;\n  width: 100%;\n  display: inline-block;\n  margin: 0;\n  padding: 8px 0;\n  outline: 0;\n  color: #333; }\n\n.bootstrap-timepicker-widget table td a:hover {\n  text-decoration: none;\n  background-color: #eee;\n  -webkit-border-radius: 4px;\n  -moz-border-radius: 4px;\n  border-radius: 4px;\n  border-color: #ddd; }\n\n.bootstrap-timepicker-widget table td a i {\n  margin-top: 2px;\n  font-size: 18px; }\n\n.bootstrap-timepicker-widget table td input {\n  width: 25px;\n  margin: 0;\n  text-align: center; }\n\n.bootstrap-timepicker-widget .modal-content {\n  padding: 4px; }\n\n@media (min-width: 767px) {\n  .bootstrap-timepicker-widget.modal {\n    width: 200px;\n    margin-left: -100px; } }\n\n@media (max-width: 767px) {\n  .bootstrap-timepicker {\n    width: 100%; }\n  .bootstrap-timepicker .dropdown-menu {\n    width: 100%; } }\n\n/*!\n * Bootstrap Colorpicker v2.3.6\n * https://itsjavi.com/bootstrap-colorpicker/\n *\n * Originally written by (c) 2012 Stefan Petre\n * Licensed under the Apache License v2.0\n * http://www.apache.org/licenses/LICENSE-2.0.txt\n *\n */\n.colorpicker-saturation {\n  width: 100px;\n  height: 100px;\n  background-image: url(\"../img/bootstrap-colorpicker/saturation.png\");\n  cursor: crosshair;\n  float: left; }\n\n.colorpicker-saturation i {\n  display: block;\n  height: 5px;\n  width: 5px;\n  border: 1px solid #000;\n  -webkit-border-radius: 5px;\n  -moz-border-radius: 5px;\n  border-radius: 5px;\n  position: absolute;\n  top: 0;\n  left: 0;\n  margin: -4px 0 0 -4px; }\n\n.colorpicker-saturation i b {\n  display: block;\n  height: 5px;\n  width: 5px;\n  border: 1px solid #fff;\n  -webkit-border-radius: 5px;\n  -moz-border-radius: 5px;\n  border-radius: 5px; }\n\n.colorpicker-hue,\n.colorpicker-alpha {\n  width: 15px;\n  height: 100px;\n  float: left;\n  cursor: row-resize;\n  margin-left: 4px;\n  margin-bottom: 4px; }\n\n.colorpicker-hue i,\n.colorpicker-alpha i {\n  display: block;\n  height: 1px;\n  background: #000;\n  border-top: 1px solid #fff;\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 100%;\n  margin-top: -1px; }\n\n.colorpicker-hue {\n  background-image: url(\"../img/bootstrap-colorpicker/hue.png\"); }\n\n.colorpicker-alpha {\n  background-image: url(\"../img/bootstrap-colorpicker/alpha.png\");\n  display: none; }\n\n.colorpicker-saturation,\n.colorpicker-hue,\n.colorpicker-alpha {\n  background-size: contain; }\n\n.colorpicker {\n  padding: 4px;\n  min-width: 130px;\n  margin-top: 1px;\n  -webkit-border-radius: 4px;\n  -moz-border-radius: 4px;\n  border-radius: 4px;\n  z-index: 2500; }\n\n.colorpicker:before,\n.colorpicker:after {\n  display: table;\n  content: \"\";\n  line-height: 0; }\n\n.colorpicker:after {\n  clear: both; }\n\n.colorpicker:before {\n  content: '';\n  display: inline-block;\n  border-left: 7px solid transparent;\n  border-right: 7px solid transparent;\n  border-bottom: 7px solid #ccc;\n  border-bottom-color: rgba(0, 0, 0, 0.2);\n  position: absolute;\n  top: -7px;\n  left: 6px; }\n\n.colorpicker:after {\n  content: '';\n  display: inline-block;\n  border-left: 6px solid transparent;\n  border-right: 6px solid transparent;\n  border-bottom: 6px solid #ffffff;\n  position: absolute;\n  top: -6px;\n  left: 7px; }\n\n.colorpicker div {\n  position: relative; }\n\n.colorpicker.colorpicker-with-alpha {\n  min-width: 140px; }\n\n.colorpicker.colorpicker-with-alpha .colorpicker-alpha {\n  display: block; }\n\n.colorpicker-color {\n  height: 10px;\n  margin-top: 5px;\n  clear: both;\n  background-image: url(\"../img/bootstrap-colorpicker/alpha.png\");\n  background-position: 0 100%; }\n\n.colorpicker-color div {\n  height: 10px; }\n\n.colorpicker-selectors {\n  display: none;\n  height: 10px;\n  margin-top: 5px;\n  clear: both; }\n\n.colorpicker-selectors i {\n  cursor: pointer;\n  float: left;\n  height: 10px;\n  width: 10px; }\n\n.colorpicker-selectors i + i {\n  margin-left: 3px; }\n\n.colorpicker-element .input-group-addon i,\n.colorpicker-element .add-on i {\n  display: inline-block;\n  cursor: pointer;\n  height: 16px;\n  vertical-align: text-top;\n  width: 16px; }\n\n.colorpicker.colorpicker-inline {\n  position: relative;\n  display: inline-block;\n  float: none;\n  z-index: auto; }\n\n.colorpicker.colorpicker-horizontal {\n  width: 110px;\n  min-width: 110px;\n  height: auto; }\n\n.colorpicker.colorpicker-horizontal .colorpicker-saturation {\n  margin-bottom: 4px; }\n\n.colorpicker.colorpicker-horizontal .colorpicker-color {\n  width: 100px; }\n\n.colorpicker.colorpicker-horizontal .colorpicker-hue,\n.colorpicker.colorpicker-horizontal .colorpicker-alpha {\n  width: 100px;\n  height: 15px;\n  float: left;\n  cursor: col-resize;\n  margin-left: 0px;\n  margin-bottom: 4px; }\n\n.colorpicker.colorpicker-horizontal .colorpicker-hue i,\n.colorpicker.colorpicker-horizontal .colorpicker-alpha i {\n  display: block;\n  height: 15px;\n  background: #ffffff;\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 1px;\n  border: none;\n  margin-top: 0px; }\n\n.colorpicker.colorpicker-horizontal .colorpicker-hue {\n  background-image: url(\"../img/bootstrap-colorpicker/hue-horizontal.png\"); }\n\n.colorpicker.colorpicker-horizontal .colorpicker-alpha {\n  background-image: url(\"../img/bootstrap-colorpicker/alpha-horizontal.png\"); }\n\n.colorpicker.colorpicker-hidden {\n  display: none; }\n\n.colorpicker.colorpicker-visible {\n  display: block; }\n\n.colorpicker-inline.colorpicker-visible {\n  display: inline-block; }\n\n.colorpicker-right:before {\n  left: auto;\n  right: 6px; }\n\n.colorpicker-right:after {\n  left: auto;\n  right: 7px; }\n\n.colorpicker-no-arrow:before {\n  border-right: 0;\n  border-left: 0; }\n\n.colorpicker-no-arrow:after {\n  border-right: 0;\n  border-left: 0; }\n\n/*# sourceMappingURL=bootstrap-colorpicker.css.map */\n.md-editor {\n  display: block;\n  border: 1px solid #ddd; }\n\n.md-editor .md-footer, .md-editor > .md-header {\n  display: block;\n  padding: 6px 4px;\n  background: #f5f5f5; }\n\n.md-editor > .md-header {\n  margin: 0; }\n\n.md-editor > .md-preview {\n  background: #fff;\n  border-top: 1px dashed #ddd;\n  border-bottom: 1px dashed #ddd;\n  min-height: 10px;\n  overflow: auto; }\n\n.md-editor > textarea {\n  font-family: Menlo,Monaco,Consolas,\"Courier New\",monospace;\n  font-size: 14px;\n  outline: 0;\n  margin: 0;\n  display: block;\n  padding: 0;\n  width: 100%;\n  border: 0;\n  border-top: 1px dashed #ddd;\n  border-bottom: 1px dashed #ddd;\n  border-radius: 0;\n  box-shadow: none;\n  background: #eee; }\n\n.md-editor > textarea:focus {\n  box-shadow: none;\n  background: #fff; }\n\n.md-editor.active {\n  border-color: #66afe9;\n  outline: 0;\n  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(102, 175, 233, 0.6);\n  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(102, 175, 233, 0.6); }\n\n.md-editor .md-controls {\n  float: right;\n  padding: 3px; }\n\n.md-editor .md-controls .md-control {\n  right: 5px;\n  color: #bebebe;\n  padding: 3px 3px 3px 10px; }\n\n.md-editor .md-controls .md-control:hover {\n  color: #333; }\n\n.md-editor.md-fullscreen-mode {\n  width: 100%;\n  height: 100%;\n  position: fixed;\n  top: 0;\n  left: 0;\n  z-index: 99999;\n  padding: 60px 30px 15px;\n  background: #fff !important;\n  border: 0 !important; }\n\n.md-editor.md-fullscreen-mode .md-footer {\n  display: none; }\n\n.md-editor.md-fullscreen-mode .md-input, .md-editor.md-fullscreen-mode .md-preview {\n  margin: 0 auto !important;\n  height: 100% !important;\n  font-size: 20px !important;\n  padding: 20px !important;\n  color: #999;\n  line-height: 1.6em !important;\n  resize: none !important;\n  box-shadow: none !important;\n  background: #fff !important;\n  border: 0 !important; }\n\n.md-editor.md-fullscreen-mode .md-preview {\n  color: #333;\n  overflow: auto; }\n\n.md-editor.md-fullscreen-mode .md-input:focus, .md-editor.md-fullscreen-mode .md-input:hover {\n  color: #333;\n  background: #fff !important; }\n\n.md-editor.md-fullscreen-mode .md-header {\n  background: 0 0;\n  text-align: center;\n  position: fixed;\n  width: 100%;\n  top: 20px; }\n\n.md-editor.md-fullscreen-mode .btn-group {\n  float: none; }\n\n.md-editor.md-fullscreen-mode .btn {\n  border: 0;\n  background: 0 0;\n  color: #b3b3b3; }\n\n.md-editor.md-fullscreen-mode .btn.active, .md-editor.md-fullscreen-mode .btn:active, .md-editor.md-fullscreen-mode .btn:focus, .md-editor.md-fullscreen-mode .btn:hover {\n  box-shadow: none;\n  color: #333; }\n\n.md-editor.md-fullscreen-mode .md-fullscreen-controls {\n  position: absolute;\n  top: 20px;\n  right: 20px;\n  text-align: right;\n  z-index: 1002;\n  display: block; }\n\n.md-editor.md-fullscreen-mode .md-fullscreen-controls a {\n  color: #b3b3b3;\n  clear: right;\n  margin: 10px;\n  width: 30px;\n  height: 30px;\n  text-align: center; }\n\n.md-editor.md-fullscreen-mode .md-fullscreen-controls a:hover {\n  color: #333;\n  text-decoration: none; }\n\n.md-editor.md-fullscreen-mode .md-editor {\n  height: 100% !important;\n  position: relative; }\n\n.md-editor .md-fullscreen-controls {\n  display: none; }\n\n.md-nooverflow {\n  overflow: hidden;\n  position: fixed;\n  width: 100%; }\n\n/*!\r\n * Bootstrap-select v1.11.2 (http://silviomoreto.github.io/bootstrap-select)\r\n *\r\n * Copyright 2013-2016 bootstrap-select\r\n * Licensed under MIT (https://github.com/silviomoreto/bootstrap-select/blob/master/LICENSE)\r\n */\nselect.bs-select-hidden,\nselect.selectpicker {\n  display: none !important; }\n\n.bootstrap-select {\n  width: 220px \\0;\n  /*IE9 and below*/ }\n\n.bootstrap-select > .dropdown-toggle {\n  width: 100%;\n  padding-right: 25px;\n  z-index: 1; }\n\n.bootstrap-select > .dropdown-toggle.bs-placeholder,\n.bootstrap-select > .dropdown-toggle.bs-placeholder:hover,\n.bootstrap-select > .dropdown-toggle.bs-placeholder:focus,\n.bootstrap-select > .dropdown-toggle.bs-placeholder:active {\n  color: #999; }\n\n.bootstrap-select > select {\n  position: absolute !important;\n  bottom: 0;\n  left: 50%;\n  display: block !important;\n  width: 0.5px !important;\n  height: 100% !important;\n  padding: 0 !important;\n  opacity: 0 !important;\n  border: none; }\n\n.bootstrap-select > select.mobile-device {\n  top: 0;\n  left: 0;\n  display: block !important;\n  width: 100% !important;\n  z-index: 2; }\n\n.has-error .bootstrap-select .dropdown-toggle,\n.error .bootstrap-select .dropdown-toggle {\n  border-color: #b94a48; }\n\n.bootstrap-select.fit-width {\n  width: auto !important; }\n\n.bootstrap-select:not([class*=\"col-\"]):not([class*=\"form-control\"]):not(.input-group-btn) {\n  width: 220px; }\n\n.bootstrap-select .dropdown-toggle:focus {\n  outline: thin dotted #333333 !important;\n  outline: 5px auto -webkit-focus-ring-color !important;\n  outline-offset: -2px; }\n\n.bootstrap-select.form-control {\n  margin-bottom: 0;\n  padding: 0;\n  border: none; }\n\n.bootstrap-select.form-control:not([class*=\"col-\"]) {\n  width: 100%; }\n\n.bootstrap-select.form-control.input-group-btn {\n  z-index: auto; }\n\n.bootstrap-select.form-control.input-group-btn:not(:first-child):not(:last-child) > .btn {\n  border-radius: 0; }\n\n.bootstrap-select.btn-group:not(.input-group-btn),\n.bootstrap-select.btn-group[class*=\"col-\"] {\n  float: none;\n  display: inline-block;\n  margin-left: 0; }\n\n.bootstrap-select.btn-group.dropdown-menu-right,\n.bootstrap-select.btn-group[class*=\"col-\"].dropdown-menu-right,\n.row .bootstrap-select.btn-group[class*=\"col-\"].dropdown-menu-right {\n  float: right; }\n\n.form-inline .bootstrap-select.btn-group,\n.form-horizontal .bootstrap-select.btn-group,\n.form-group .bootstrap-select.btn-group {\n  margin-bottom: 0; }\n\n.form-group-lg .bootstrap-select.btn-group.form-control,\n.form-group-sm .bootstrap-select.btn-group.form-control {\n  padding: 0; }\n\n.form-inline .bootstrap-select.btn-group .form-control {\n  width: 100%; }\n\n.bootstrap-select.btn-group.disabled,\n.bootstrap-select.btn-group > .disabled {\n  cursor: not-allowed; }\n\n.bootstrap-select.btn-group.disabled:focus,\n.bootstrap-select.btn-group > .disabled:focus {\n  outline: none !important; }\n\n.bootstrap-select.btn-group.bs-container {\n  position: absolute;\n  height: 0 !important;\n  padding: 0 !important; }\n\n.bootstrap-select.btn-group.bs-container .dropdown-menu {\n  z-index: 1060; }\n\n.bootstrap-select.btn-group .dropdown-toggle .filter-option {\n  display: inline-block;\n  overflow: hidden;\n  width: 100%;\n  text-align: left; }\n\n.bootstrap-select.btn-group .dropdown-toggle .caret {\n  position: absolute;\n  top: 50%;\n  right: 12px;\n  margin-top: -2px;\n  vertical-align: middle; }\n\n.bootstrap-select.btn-group[class*=\"col-\"] .dropdown-toggle {\n  width: 100%; }\n\n.bootstrap-select.btn-group .dropdown-menu {\n  min-width: 100%;\n  -webkit-box-sizing: border-box;\n  -moz-box-sizing: border-box;\n  box-sizing: border-box; }\n\n.bootstrap-select.btn-group .dropdown-menu.inner {\n  position: static;\n  float: none;\n  border: 0;\n  padding: 0;\n  margin: 0;\n  border-radius: 0;\n  -webkit-box-shadow: none;\n  box-shadow: none; }\n\n.bootstrap-select.btn-group .dropdown-menu li {\n  position: relative; }\n\n.bootstrap-select.btn-group .dropdown-menu li.active small {\n  color: #fff; }\n\n.bootstrap-select.btn-group .dropdown-menu li.disabled a {\n  cursor: not-allowed; }\n\n.bootstrap-select.btn-group .dropdown-menu li a {\n  cursor: pointer;\n  -webkit-user-select: none;\n  -moz-user-select: none;\n  -ms-user-select: none;\n  user-select: none; }\n\n.bootstrap-select.btn-group .dropdown-menu li a.opt {\n  position: relative;\n  padding-left: 2.25em; }\n\n.bootstrap-select.btn-group .dropdown-menu li a span.check-mark {\n  display: none; }\n\n.bootstrap-select.btn-group .dropdown-menu li a span.text {\n  display: inline-block; }\n\n.bootstrap-select.btn-group .dropdown-menu li small {\n  padding-left: 0.5em; }\n\n.bootstrap-select.btn-group .dropdown-menu .notify {\n  position: absolute;\n  bottom: 5px;\n  width: 96%;\n  margin: 0 2%;\n  min-height: 26px;\n  padding: 3px 5px;\n  background: #f5f5f5;\n  border: 1px solid #e3e3e3;\n  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);\n  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);\n  pointer-events: none;\n  opacity: 0.9;\n  -webkit-box-sizing: border-box;\n  -moz-box-sizing: border-box;\n  box-sizing: border-box; }\n\n.bootstrap-select.btn-group .no-results {\n  padding: 3px;\n  background: #f5f5f5;\n  margin: 0 5px;\n  white-space: nowrap; }\n\n.bootstrap-select.btn-group.fit-width .dropdown-toggle .filter-option {\n  position: static; }\n\n.bootstrap-select.btn-group.fit-width .dropdown-toggle .caret {\n  position: static;\n  top: auto;\n  margin-top: -1px; }\n\n.bootstrap-select.btn-group.show-tick .dropdown-menu li.selected a span.check-mark {\n  position: absolute;\n  display: inline-block;\n  right: 15px;\n  margin-top: 5px; }\n\n.bootstrap-select.btn-group.show-tick .dropdown-menu li a span.text {\n  margin-right: 34px; }\n\n.bootstrap-select.show-menu-arrow.open > .dropdown-toggle {\n  z-index: 1061; }\n\n.bootstrap-select.show-menu-arrow .dropdown-toggle:before {\n  content: '';\n  border-left: 7px solid transparent;\n  border-right: 7px solid transparent;\n  border-bottom: 7px solid rgba(204, 204, 204, 0.2);\n  position: absolute;\n  bottom: -4px;\n  left: 9px;\n  display: none; }\n\n.bootstrap-select.show-menu-arrow .dropdown-toggle:after {\n  content: '';\n  border-left: 6px solid transparent;\n  border-right: 6px solid transparent;\n  border-bottom: 6px solid white;\n  position: absolute;\n  bottom: -4px;\n  left: 10px;\n  display: none; }\n\n.bootstrap-select.show-menu-arrow.dropup .dropdown-toggle:before {\n  bottom: auto;\n  top: -3px;\n  border-top: 7px solid rgba(204, 204, 204, 0.2);\n  border-bottom: 0; }\n\n.bootstrap-select.show-menu-arrow.dropup .dropdown-toggle:after {\n  bottom: auto;\n  top: -3px;\n  border-top: 6px solid white;\n  border-bottom: 0; }\n\n.bootstrap-select.show-menu-arrow.pull-right .dropdown-toggle:before {\n  right: 12px;\n  left: auto; }\n\n.bootstrap-select.show-menu-arrow.pull-right .dropdown-toggle:after {\n  right: 13px;\n  left: auto; }\n\n.bootstrap-select.show-menu-arrow.open > .dropdown-toggle:before,\n.bootstrap-select.show-menu-arrow.open > .dropdown-toggle:after {\n  display: block; }\n\n.bs-searchbox,\n.bs-actionsbox,\n.bs-donebutton {\n  padding: 4px 8px; }\n\n.bs-actionsbox {\n  width: 100%;\n  -webkit-box-sizing: border-box;\n  -moz-box-sizing: border-box;\n  box-sizing: border-box; }\n\n.bs-actionsbox .btn-group button {\n  width: 50%; }\n\n.bs-donebutton {\n  float: left;\n  width: 100%;\n  -webkit-box-sizing: border-box;\n  -moz-box-sizing: border-box;\n  box-sizing: border-box; }\n\n.bs-donebutton .btn-group button {\n  width: 100%; }\n\n.bs-searchbox + .bs-actionsbox {\n  padding: 0 8px 4px; }\n\n.bs-searchbox .form-control {\n  margin-bottom: 0;\n  width: 100%;\n  float: none; }\n\n/*# sourceMappingURL=bootstrap-select.css.map */\n/*!\n * Jasny Bootstrap v3.1.3 (http://jasny.github.io/bootstrap)\n * Copyright 2012-2014 Arnold Daniels\n * Licensed under Apache-2.0 (https://github.com/jasny/bootstrap/blob/master/LICENSE)\n */\n.container-smooth {\n  max-width: 1170px; }\n\n@media (min-width: 1px) {\n  .container-smooth {\n    width: auto; } }\n\n.btn-labeled {\n  padding-top: 0;\n  padding-bottom: 0; }\n\n.btn-label {\n  position: relative;\n  left: -12px;\n  display: inline-block;\n  padding: 6px 12px;\n  background: transparent;\n  background: rgba(0, 0, 0, 0.15);\n  border-radius: 3px 0 0 3px; }\n\n.btn-label.btn-label-right {\n  right: -12px;\n  left: auto;\n  border-radius: 0 3px 3px 0; }\n\n.btn-lg .btn-label {\n  left: -16px;\n  padding: 10px 16px;\n  border-radius: 5px 0 0 5px; }\n\n.btn-lg .btn-label.btn-label-right {\n  right: -16px;\n  left: auto;\n  border-radius: 0 5px 5px 0; }\n\n.btn-sm .btn-label {\n  left: -10px;\n  padding: 5px 10px;\n  border-radius: 2px 0 0 2px; }\n\n.btn-sm .btn-label.btn-label-right {\n  right: -10px;\n  left: auto;\n  border-radius: 0 2px 2px 0; }\n\n.btn-xs .btn-label {\n  left: -5px;\n  padding: 1px 5px;\n  border-radius: 2px 0 0 2px; }\n\n.btn-xs .btn-label.btn-label-right {\n  right: -5px;\n  left: auto;\n  border-radius: 0 2px 2px 0; }\n\n.nav-tabs-bottom {\n  border-top: 1px solid #ddd;\n  border-bottom: 0; }\n\n.nav-tabs-bottom > li {\n  margin-top: -1px;\n  margin-bottom: 0; }\n\n.nav-tabs-bottom > li > a {\n  border-radius: 0 0 4px 4px; }\n\n.nav-tabs-bottom > li > a:hover,\n.nav-tabs-bottom > li > a:focus,\n.nav-tabs-bottom > li.active > a,\n.nav-tabs-bottom > li.active > a:hover,\n.nav-tabs-bottom > li.active > a:focus {\n  border: 1px solid #ddd;\n  border-top-color: transparent; }\n\n.nav-tabs-left {\n  border-right: 1px solid #ddd;\n  border-bottom: 0; }\n\n.nav-tabs-left > li {\n  float: none;\n  margin-right: -1px;\n  margin-bottom: 0; }\n\n.nav-tabs-left > li > a {\n  margin-right: 0;\n  margin-bottom: 2px;\n  border-radius: 4px 0 0 4px; }\n\n.nav-tabs-left > li > a:hover,\n.nav-tabs-left > li > a:focus,\n.nav-tabs-left > li.active > a,\n.nav-tabs-left > li.active > a:hover,\n.nav-tabs-left > li.active > a:focus {\n  border: 1px solid #ddd;\n  border-right-color: transparent; }\n\n.row > .nav-tabs-left {\n  position: relative;\n  z-index: 1;\n  padding-right: 0;\n  padding-left: 15px;\n  margin-right: -1px; }\n\n.row > .nav-tabs-left + .tab-content {\n  border-left: 1px solid #ddd; }\n\n.nav-tabs-right {\n  border-bottom: 0;\n  border-left: 1px solid #ddd; }\n\n.nav-tabs-right > li {\n  float: none;\n  margin-bottom: 0;\n  margin-left: -1px; }\n\n.nav-tabs-right > li > a {\n  margin-bottom: 2px;\n  margin-left: 0;\n  border-radius: 0 4px 4px 0; }\n\n.nav-tabs-right > li > a:hover,\n.nav-tabs-right > li > a:focus,\n.nav-tabs-right > li.active > a,\n.nav-tabs-right > li.active > a:hover,\n.nav-tabs-right > li.active > a:focus {\n  border: 1px solid #ddd;\n  border-left-color: transparent; }\n\n.row > .nav-tabs-right {\n  padding-right: 15px;\n  padding-left: 0; }\n\n.navmenu,\n.navbar-offcanvas {\n  width: 300px;\n  height: auto;\n  border-style: solid;\n  border-width: 1px;\n  border-radius: 4px; }\n\n.navmenu-fixed-left,\n.navmenu-fixed-right,\n.navbar-offcanvas {\n  position: fixed;\n  top: 0;\n  bottom: 0;\n  z-index: 1050;\n  overflow-y: auto;\n  border-radius: 0; }\n\n.navmenu-fixed-left,\n.navbar-offcanvas.navmenu-fixed-left {\n  right: auto;\n  left: 0;\n  border-width: 0 1px 0 0; }\n\n.navmenu-fixed-right,\n.navbar-offcanvas {\n  right: 0;\n  left: auto;\n  border-width: 0 0 0 1px; }\n\n.navmenu-nav {\n  margin-bottom: 10px; }\n\n.navmenu-nav.dropdown-menu {\n  position: static;\n  float: none;\n  padding-top: 0;\n  margin: 0;\n  border: none;\n  border-radius: 0;\n  -webkit-box-shadow: none;\n  box-shadow: none; }\n\n.navbar-offcanvas .navbar-nav {\n  margin: 0; }\n\n@media (min-width: 768px) {\n  .navbar-offcanvas {\n    width: auto;\n    border-top: 0;\n    box-shadow: none; }\n  .navbar-offcanvas.offcanvas {\n    position: static;\n    display: block !important;\n    height: auto !important;\n    padding-bottom: 0;\n    overflow: visible !important; }\n  .navbar-offcanvas .navbar-nav.navbar-left:first-child {\n    margin-left: -15px; }\n  .navbar-offcanvas .navbar-nav.navbar-right:last-child {\n    margin-right: -15px; }\n  .navbar-offcanvas .navmenu-brand {\n    display: none; } }\n\n.navmenu-brand {\n  display: block;\n  padding: 10px 15px;\n  margin: 10px 0;\n  font-size: 18px;\n  line-height: 20px; }\n\n.navmenu-brand:hover,\n.navmenu-brand:focus {\n  text-decoration: none; }\n\n.navmenu-default,\n.navbar-default .navbar-offcanvas {\n  background-color: #f8f8f8;\n  border-color: #e7e7e7; }\n\n.navmenu-default .navmenu-brand,\n.navbar-default .navbar-offcanvas .navmenu-brand {\n  color: #777; }\n\n.navmenu-default .navmenu-brand:hover,\n.navbar-default .navbar-offcanvas .navmenu-brand:hover,\n.navmenu-default .navmenu-brand:focus,\n.navbar-default .navbar-offcanvas .navmenu-brand:focus {\n  color: #5e5e5e;\n  background-color: transparent; }\n\n.navmenu-default .navmenu-text,\n.navbar-default .navbar-offcanvas .navmenu-text {\n  color: #777; }\n\n.navmenu-default .navmenu-nav > .dropdown > a:hover .caret,\n.navbar-default .navbar-offcanvas .navmenu-nav > .dropdown > a:hover .caret,\n.navmenu-default .navmenu-nav > .dropdown > a:focus .caret,\n.navbar-default .navbar-offcanvas .navmenu-nav > .dropdown > a:focus .caret {\n  border-top-color: #333;\n  border-bottom-color: #333; }\n\n.navmenu-default .navmenu-nav > .open > a,\n.navbar-default .navbar-offcanvas .navmenu-nav > .open > a,\n.navmenu-default .navmenu-nav > .open > a:hover,\n.navbar-default .navbar-offcanvas .navmenu-nav > .open > a:hover,\n.navmenu-default .navmenu-nav > .open > a:focus,\n.navbar-default .navbar-offcanvas .navmenu-nav > .open > a:focus {\n  color: #555;\n  background-color: #e7e7e7; }\n\n.navmenu-default .navmenu-nav > .open > a .caret,\n.navbar-default .navbar-offcanvas .navmenu-nav > .open > a .caret,\n.navmenu-default .navmenu-nav > .open > a:hover .caret,\n.navbar-default .navbar-offcanvas .navmenu-nav > .open > a:hover .caret,\n.navmenu-default .navmenu-nav > .open > a:focus .caret,\n.navbar-default .navbar-offcanvas .navmenu-nav > .open > a:focus .caret {\n  border-top-color: #555;\n  border-bottom-color: #555; }\n\n.navmenu-default .navmenu-nav > .dropdown > a .caret,\n.navbar-default .navbar-offcanvas .navmenu-nav > .dropdown > a .caret {\n  border-top-color: #777;\n  border-bottom-color: #777; }\n\n.navmenu-default .navmenu-nav.dropdown-menu,\n.navbar-default .navbar-offcanvas .navmenu-nav.dropdown-menu {\n  background-color: #e7e7e7; }\n\n.navmenu-default .navmenu-nav.dropdown-menu > .divider,\n.navbar-default .navbar-offcanvas .navmenu-nav.dropdown-menu > .divider {\n  background-color: #f8f8f8; }\n\n.navmenu-default .navmenu-nav.dropdown-menu > .active > a,\n.navbar-default .navbar-offcanvas .navmenu-nav.dropdown-menu > .active > a,\n.navmenu-default .navmenu-nav.dropdown-menu > .active > a:hover,\n.navbar-default .navbar-offcanvas .navmenu-nav.dropdown-menu > .active > a:hover,\n.navmenu-default .navmenu-nav.dropdown-menu > .active > a:focus,\n.navbar-default .navbar-offcanvas .navmenu-nav.dropdown-menu > .active > a:focus {\n  background-color: #d7d7d7; }\n\n.navmenu-default .navmenu-nav > li > a,\n.navbar-default .navbar-offcanvas .navmenu-nav > li > a {\n  color: #777; }\n\n.navmenu-default .navmenu-nav > li > a:hover,\n.navbar-default .navbar-offcanvas .navmenu-nav > li > a:hover,\n.navmenu-default .navmenu-nav > li > a:focus,\n.navbar-default .navbar-offcanvas .navmenu-nav > li > a:focus {\n  color: #333;\n  background-color: transparent; }\n\n.navmenu-default .navmenu-nav > .active > a,\n.navbar-default .navbar-offcanvas .navmenu-nav > .active > a,\n.navmenu-default .navmenu-nav > .active > a:hover,\n.navbar-default .navbar-offcanvas .navmenu-nav > .active > a:hover,\n.navmenu-default .navmenu-nav > .active > a:focus,\n.navbar-default .navbar-offcanvas .navmenu-nav > .active > a:focus {\n  color: #555;\n  background-color: #e7e7e7; }\n\n.navmenu-default .navmenu-nav > .disabled > a,\n.navbar-default .navbar-offcanvas .navmenu-nav > .disabled > a,\n.navmenu-default .navmenu-nav > .disabled > a:hover,\n.navbar-default .navbar-offcanvas .navmenu-nav > .disabled > a:hover,\n.navmenu-default .navmenu-nav > .disabled > a:focus,\n.navbar-default .navbar-offcanvas .navmenu-nav > .disabled > a:focus {\n  color: #ccc;\n  background-color: transparent; }\n\n.navmenu-inverse,\n.navbar-inverse .navbar-offcanvas {\n  background-color: #222;\n  border-color: #080808; }\n\n.navmenu-inverse .navmenu-brand,\n.navbar-inverse .navbar-offcanvas .navmenu-brand {\n  color: #999; }\n\n.navmenu-inverse .navmenu-brand:hover,\n.navbar-inverse .navbar-offcanvas .navmenu-brand:hover,\n.navmenu-inverse .navmenu-brand:focus,\n.navbar-inverse .navbar-offcanvas .navmenu-brand:focus {\n  color: #fff;\n  background-color: transparent; }\n\n.navmenu-inverse .navmenu-text,\n.navbar-inverse .navbar-offcanvas .navmenu-text {\n  color: #999; }\n\n.navmenu-inverse .navmenu-nav > .dropdown > a:hover .caret,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > .dropdown > a:hover .caret,\n.navmenu-inverse .navmenu-nav > .dropdown > a:focus .caret,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > .dropdown > a:focus .caret {\n  border-top-color: #fff;\n  border-bottom-color: #fff; }\n\n.navmenu-inverse .navmenu-nav > .open > a,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > .open > a,\n.navmenu-inverse .navmenu-nav > .open > a:hover,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > .open > a:hover,\n.navmenu-inverse .navmenu-nav > .open > a:focus,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > .open > a:focus {\n  color: #fff;\n  background-color: #080808; }\n\n.navmenu-inverse .navmenu-nav > .open > a .caret,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > .open > a .caret,\n.navmenu-inverse .navmenu-nav > .open > a:hover .caret,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > .open > a:hover .caret,\n.navmenu-inverse .navmenu-nav > .open > a:focus .caret,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > .open > a:focus .caret {\n  border-top-color: #fff;\n  border-bottom-color: #fff; }\n\n.navmenu-inverse .navmenu-nav > .dropdown > a .caret,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > .dropdown > a .caret {\n  border-top-color: #999;\n  border-bottom-color: #999; }\n\n.navmenu-inverse .navmenu-nav.dropdown-menu,\n.navbar-inverse .navbar-offcanvas .navmenu-nav.dropdown-menu {\n  background-color: #080808; }\n\n.navmenu-inverse .navmenu-nav.dropdown-menu > .divider,\n.navbar-inverse .navbar-offcanvas .navmenu-nav.dropdown-menu > .divider {\n  background-color: #222; }\n\n.navmenu-inverse .navmenu-nav.dropdown-menu > .active > a,\n.navbar-inverse .navbar-offcanvas .navmenu-nav.dropdown-menu > .active > a,\n.navmenu-inverse .navmenu-nav.dropdown-menu > .active > a:hover,\n.navbar-inverse .navbar-offcanvas .navmenu-nav.dropdown-menu > .active > a:hover,\n.navmenu-inverse .navmenu-nav.dropdown-menu > .active > a:focus,\n.navbar-inverse .navbar-offcanvas .navmenu-nav.dropdown-menu > .active > a:focus {\n  background-color: #000; }\n\n.navmenu-inverse .navmenu-nav > li > a,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > li > a {\n  color: #999; }\n\n.navmenu-inverse .navmenu-nav > li > a:hover,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > li > a:hover,\n.navmenu-inverse .navmenu-nav > li > a:focus,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > li > a:focus {\n  color: #fff;\n  background-color: transparent; }\n\n.navmenu-inverse .navmenu-nav > .active > a,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > .active > a,\n.navmenu-inverse .navmenu-nav > .active > a:hover,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > .active > a:hover,\n.navmenu-inverse .navmenu-nav > .active > a:focus,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > .active > a:focus {\n  color: #fff;\n  background-color: #080808; }\n\n.navmenu-inverse .navmenu-nav > .disabled > a,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > .disabled > a,\n.navmenu-inverse .navmenu-nav > .disabled > a:hover,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > .disabled > a:hover,\n.navmenu-inverse .navmenu-nav > .disabled > a:focus,\n.navbar-inverse .navbar-offcanvas .navmenu-nav > .disabled > a:focus {\n  color: #444;\n  background-color: transparent; }\n\n.alert-fixed-top,\n.alert-fixed-bottom {\n  position: fixed;\n  left: 0;\n  z-index: 1035;\n  width: 100%;\n  margin: 0;\n  border-radius: 0; }\n\n@media (min-width: 992px) {\n  .alert-fixed-top,\n  .alert-fixed-bottom {\n    left: 50%;\n    width: 992px;\n    margin-left: -496px; } }\n\n.alert-fixed-top {\n  top: 0;\n  border-width: 0 0 1px 0; }\n\n@media (min-width: 992px) {\n  .alert-fixed-top {\n    border-width: 0 1px 1px 1px;\n    border-bottom-right-radius: 4px;\n    border-bottom-left-radius: 4px; } }\n\n.alert-fixed-bottom {\n  bottom: 0;\n  border-width: 1px 0 0 0; }\n\n@media (min-width: 992px) {\n  .alert-fixed-bottom {\n    border-width: 1px 1px 0 1px;\n    border-top-left-radius: 4px;\n    border-top-right-radius: 4px; } }\n\n.offcanvas {\n  display: none; }\n\n.offcanvas.in {\n  display: block; }\n\n@media (max-width: 767px) {\n  .offcanvas-xs {\n    display: none; }\n  .offcanvas-xs.in {\n    display: block; } }\n\n@media (max-width: 991px) {\n  .offcanvas-sm {\n    display: none; }\n  .offcanvas-sm.in {\n    display: block; } }\n\n@media (max-width: 1199px) {\n  .offcanvas-md {\n    display: none; }\n  .offcanvas-md.in {\n    display: block; } }\n\n.offcanvas-lg {\n  display: none; }\n\n.offcanvas-lg.in {\n  display: block; }\n\n.canvas-sliding {\n  -webkit-transition: top .35s, left .35s, bottom .35s, right .35s;\n  transition: top .35s, left .35s, bottom .35s, right .35s; }\n\n.offcanvas-clone {\n  position: absolute !important;\n  top: auto !important;\n  right: 0 !important;\n  bottom: 0 !important;\n  left: auto !important;\n  width: 0 !important;\n  height: 0 !important;\n  padding: 0 !important;\n  margin: 0 !important;\n  overflow: hidden !important;\n  border: none !important;\n  opacity: 0 !important; }\n\n.table.rowlink td:not(.rowlink-skip),\n.table .rowlink td:not(.rowlink-skip) {\n  cursor: pointer; }\n\n.table.rowlink td:not(.rowlink-skip) a,\n.table .rowlink td:not(.rowlink-skip) a {\n  font: inherit;\n  color: inherit;\n  text-decoration: inherit; }\n\n.table-hover.rowlink tr:hover td,\n.table-hover .rowlink tr:hover td {\n  background-color: #cfcfcf; }\n\n.btn-file {\n  position: relative;\n  overflow: hidden;\n  vertical-align: middle; }\n\n.btn-file > input {\n  position: absolute;\n  top: 0;\n  right: 0;\n  width: 100%;\n  height: 100%;\n  margin: 0;\n  font-size: 23px;\n  cursor: pointer;\n  filter: alpha(opacity=0);\n  opacity: 0;\n  direction: ltr; }\n\n.fileinput {\n  display: inline-block;\n  margin-bottom: 9px; }\n\n.fileinput .form-control {\n  display: inline-block;\n  padding-top: 7px;\n  padding-bottom: 5px;\n  margin-bottom: 0;\n  vertical-align: middle;\n  cursor: text; }\n\n.fileinput .thumbnail {\n  display: inline-block;\n  margin-bottom: 5px;\n  overflow: hidden;\n  text-align: center;\n  vertical-align: middle; }\n\n.fileinput .thumbnail > img {\n  max-height: 100%; }\n\n.fileinput .btn {\n  vertical-align: middle; }\n\n.fileinput-exists .fileinput-new,\n.fileinput-new .fileinput-exists {\n  display: none; }\n\n.fileinput-inline .fileinput-controls {\n  display: inline; }\n\n.fileinput-filename {\n  display: inline-block;\n  overflow: hidden;\n  vertical-align: middle; }\n\n.form-control .fileinput-filename {\n  vertical-align: bottom; }\n\n.fileinput.input-group {\n  display: table; }\n\n.fileinput.input-group > * {\n  position: relative;\n  z-index: 2; }\n\n.fileinput.input-group > .btn-file {\n  z-index: 1; }\n\n.fileinput-new.input-group .btn-file,\n.fileinput-new .input-group .btn-file {\n  border-radius: 0 4px 4px 0; }\n\n.fileinput-new.input-group .btn-file.btn-xs,\n.fileinput-new .input-group .btn-file.btn-xs,\n.fileinput-new.input-group .btn-file.btn-sm,\n.fileinput-new .input-group .btn-file.btn-sm {\n  border-radius: 0 3px 3px 0; }\n\n.fileinput-new.input-group .btn-file.btn-lg,\n.fileinput-new .input-group .btn-file.btn-lg {\n  border-radius: 0 6px 6px 0; }\n\n.form-group.has-warning .fileinput .fileinput-preview {\n  color: #8a6d3b; }\n\n.form-group.has-warning .fileinput .thumbnail {\n  border-color: #faebcc; }\n\n.form-group.has-error .fileinput .fileinput-preview {\n  color: #a94442; }\n\n.form-group.has-error .fileinput .thumbnail {\n  border-color: #ebccd1; }\n\n.form-group.has-success .fileinput .fileinput-preview {\n  color: #3c763d; }\n\n.form-group.has-success .fileinput .thumbnail {\n  border-color: #d6e9c6; }\n\n.input-group-addon:not(:first-child) {\n  border-left: 0; }\n\n/*# sourceMappingURL=jasny-bootstrap.css.map */\n/*\n * The MIT License\n * Copyright (c) 2012 Matias Meno <m@tias.me>\n */\n@-webkit-keyframes passing-through {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateY(40px);\n    -moz-transform: translateY(40px);\n    -ms-transform: translateY(40px);\n    -o-transform: translateY(40px);\n    transform: translateY(40px); }\n  30%, 70% {\n    opacity: 1;\n    -webkit-transform: translateY(0px);\n    -moz-transform: translateY(0px);\n    -ms-transform: translateY(0px);\n    -o-transform: translateY(0px);\n    transform: translateY(0px); }\n  100% {\n    opacity: 0;\n    -webkit-transform: translateY(-40px);\n    -moz-transform: translateY(-40px);\n    -ms-transform: translateY(-40px);\n    -o-transform: translateY(-40px);\n    transform: translateY(-40px); } }\n\n@-moz-keyframes passing-through {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateY(40px);\n    -moz-transform: translateY(40px);\n    -ms-transform: translateY(40px);\n    -o-transform: translateY(40px);\n    transform: translateY(40px); }\n  30%, 70% {\n    opacity: 1;\n    -webkit-transform: translateY(0px);\n    -moz-transform: translateY(0px);\n    -ms-transform: translateY(0px);\n    -o-transform: translateY(0px);\n    transform: translateY(0px); }\n  100% {\n    opacity: 0;\n    -webkit-transform: translateY(-40px);\n    -moz-transform: translateY(-40px);\n    -ms-transform: translateY(-40px);\n    -o-transform: translateY(-40px);\n    transform: translateY(-40px); } }\n\n@keyframes passing-through {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateY(40px);\n    -moz-transform: translateY(40px);\n    -ms-transform: translateY(40px);\n    -o-transform: translateY(40px);\n    transform: translateY(40px); }\n  30%, 70% {\n    opacity: 1;\n    -webkit-transform: translateY(0px);\n    -moz-transform: translateY(0px);\n    -ms-transform: translateY(0px);\n    -o-transform: translateY(0px);\n    transform: translateY(0px); }\n  100% {\n    opacity: 0;\n    -webkit-transform: translateY(-40px);\n    -moz-transform: translateY(-40px);\n    -ms-transform: translateY(-40px);\n    -o-transform: translateY(-40px);\n    transform: translateY(-40px); } }\n\n@-webkit-keyframes slide-in {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateY(40px);\n    -moz-transform: translateY(40px);\n    -ms-transform: translateY(40px);\n    -o-transform: translateY(40px);\n    transform: translateY(40px); }\n  30% {\n    opacity: 1;\n    -webkit-transform: translateY(0px);\n    -moz-transform: translateY(0px);\n    -ms-transform: translateY(0px);\n    -o-transform: translateY(0px);\n    transform: translateY(0px); } }\n\n@-moz-keyframes slide-in {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateY(40px);\n    -moz-transform: translateY(40px);\n    -ms-transform: translateY(40px);\n    -o-transform: translateY(40px);\n    transform: translateY(40px); }\n  30% {\n    opacity: 1;\n    -webkit-transform: translateY(0px);\n    -moz-transform: translateY(0px);\n    -ms-transform: translateY(0px);\n    -o-transform: translateY(0px);\n    transform: translateY(0px); } }\n\n@keyframes slide-in {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateY(40px);\n    -moz-transform: translateY(40px);\n    -ms-transform: translateY(40px);\n    -o-transform: translateY(40px);\n    transform: translateY(40px); }\n  30% {\n    opacity: 1;\n    -webkit-transform: translateY(0px);\n    -moz-transform: translateY(0px);\n    -ms-transform: translateY(0px);\n    -o-transform: translateY(0px);\n    transform: translateY(0px); } }\n\n@-webkit-keyframes pulse {\n  0% {\n    -webkit-transform: scale(1);\n    -moz-transform: scale(1);\n    -ms-transform: scale(1);\n    -o-transform: scale(1);\n    transform: scale(1); }\n  10% {\n    -webkit-transform: scale(1.1);\n    -moz-transform: scale(1.1);\n    -ms-transform: scale(1.1);\n    -o-transform: scale(1.1);\n    transform: scale(1.1); }\n  20% {\n    -webkit-transform: scale(1);\n    -moz-transform: scale(1);\n    -ms-transform: scale(1);\n    -o-transform: scale(1);\n    transform: scale(1); } }\n\n@-moz-keyframes pulse {\n  0% {\n    -webkit-transform: scale(1);\n    -moz-transform: scale(1);\n    -ms-transform: scale(1);\n    -o-transform: scale(1);\n    transform: scale(1); }\n  10% {\n    -webkit-transform: scale(1.1);\n    -moz-transform: scale(1.1);\n    -ms-transform: scale(1.1);\n    -o-transform: scale(1.1);\n    transform: scale(1.1); }\n  20% {\n    -webkit-transform: scale(1);\n    -moz-transform: scale(1);\n    -ms-transform: scale(1);\n    -o-transform: scale(1);\n    transform: scale(1); } }\n\n@keyframes pulse {\n  0% {\n    -webkit-transform: scale(1);\n    -moz-transform: scale(1);\n    -ms-transform: scale(1);\n    -o-transform: scale(1);\n    transform: scale(1); }\n  10% {\n    -webkit-transform: scale(1.1);\n    -moz-transform: scale(1.1);\n    -ms-transform: scale(1.1);\n    -o-transform: scale(1.1);\n    transform: scale(1.1); }\n  20% {\n    -webkit-transform: scale(1);\n    -moz-transform: scale(1);\n    -ms-transform: scale(1);\n    -o-transform: scale(1);\n    transform: scale(1); } }\n\n.dropzone, .dropzone * {\n  box-sizing: border-box; }\n\n.dropzone {\n  min-height: 150px;\n  border: 2px solid rgba(0, 0, 0, 0.3);\n  background: white;\n  padding: 20px 20px; }\n\n.dropzone.dz-clickable {\n  cursor: pointer; }\n\n.dropzone.dz-clickable * {\n  cursor: default; }\n\n.dropzone.dz-clickable .dz-message, .dropzone.dz-clickable .dz-message * {\n  cursor: pointer; }\n\n.dropzone.dz-started .dz-message {\n  display: none; }\n\n.dropzone.dz-drag-hover {\n  border-style: solid; }\n\n.dropzone.dz-drag-hover .dz-message {\n  opacity: 0.5; }\n\n.dropzone .dz-message {\n  text-align: center;\n  margin: 2em 0; }\n\n.dropzone .dz-preview {\n  position: relative;\n  display: inline-block;\n  vertical-align: top;\n  margin: 16px;\n  min-height: 100px; }\n\n.dropzone .dz-preview:hover {\n  z-index: 1000; }\n\n.dropzone .dz-preview:hover .dz-details {\n  opacity: 1; }\n\n.dropzone .dz-preview.dz-file-preview .dz-image {\n  border-radius: 20px;\n  background: #999;\n  background: linear-gradient(to bottom, #eee, #ddd); }\n\n.dropzone .dz-preview.dz-file-preview .dz-details {\n  opacity: 1; }\n\n.dropzone .dz-preview.dz-image-preview {\n  background: white; }\n\n.dropzone .dz-preview.dz-image-preview .dz-details {\n  -webkit-transition: opacity 0.2s linear;\n  -moz-transition: opacity 0.2s linear;\n  -ms-transition: opacity 0.2s linear;\n  -o-transition: opacity 0.2s linear;\n  transition: opacity 0.2s linear; }\n\n.dropzone .dz-preview .dz-remove {\n  font-size: 14px;\n  text-align: center;\n  display: block;\n  cursor: pointer;\n  border: none; }\n\n.dropzone .dz-preview .dz-remove:hover {\n  text-decoration: underline; }\n\n.dropzone .dz-preview:hover .dz-details {\n  opacity: 1; }\n\n.dropzone .dz-preview .dz-details {\n  z-index: 20;\n  position: absolute;\n  top: 0;\n  left: 0;\n  opacity: 0;\n  font-size: 13px;\n  min-width: 100%;\n  max-width: 100%;\n  padding: 2em 1em;\n  text-align: center;\n  color: rgba(0, 0, 0, 0.9);\n  line-height: 150%; }\n\n.dropzone .dz-preview .dz-details .dz-size {\n  margin-bottom: 1em;\n  font-size: 16px; }\n\n.dropzone .dz-preview .dz-details .dz-filename {\n  white-space: nowrap; }\n\n.dropzone .dz-preview .dz-details .dz-filename:hover span {\n  border: 1px solid rgba(200, 200, 200, 0.8);\n  background-color: rgba(255, 255, 255, 0.8); }\n\n.dropzone .dz-preview .dz-details .dz-filename:not(:hover) {\n  overflow: hidden;\n  text-overflow: ellipsis; }\n\n.dropzone .dz-preview .dz-details .dz-filename:not(:hover) span {\n  border: 1px solid transparent; }\n\n.dropzone .dz-preview .dz-details .dz-filename span, .dropzone .dz-preview .dz-details .dz-size span {\n  background-color: rgba(255, 255, 255, 0.4);\n  padding: 0 0.4em;\n  border-radius: 3px; }\n\n.dropzone .dz-preview:hover .dz-image img {\n  -webkit-transform: scale(1.05, 1.05);\n  -moz-transform: scale(1.05, 1.05);\n  -ms-transform: scale(1.05, 1.05);\n  -o-transform: scale(1.05, 1.05);\n  transform: scale(1.05, 1.05);\n  -webkit-filter: blur(8px);\n  filter: blur(8px); }\n\n.dropzone .dz-preview .dz-image {\n  border-radius: 20px;\n  overflow: hidden;\n  width: 120px;\n  height: 120px;\n  position: relative;\n  display: block;\n  z-index: 10; }\n\n.dropzone .dz-preview .dz-image img {\n  display: block; }\n\n.dropzone .dz-preview.dz-success .dz-success-mark {\n  -webkit-animation: passing-through 3s cubic-bezier(0.77, 0, 0.175, 1);\n  -moz-animation: passing-through 3s cubic-bezier(0.77, 0, 0.175, 1);\n  -ms-animation: passing-through 3s cubic-bezier(0.77, 0, 0.175, 1);\n  -o-animation: passing-through 3s cubic-bezier(0.77, 0, 0.175, 1);\n  animation: passing-through 3s cubic-bezier(0.77, 0, 0.175, 1); }\n\n.dropzone .dz-preview.dz-error .dz-error-mark {\n  opacity: 1;\n  -webkit-animation: slide-in 3s cubic-bezier(0.77, 0, 0.175, 1);\n  -moz-animation: slide-in 3s cubic-bezier(0.77, 0, 0.175, 1);\n  -ms-animation: slide-in 3s cubic-bezier(0.77, 0, 0.175, 1);\n  -o-animation: slide-in 3s cubic-bezier(0.77, 0, 0.175, 1);\n  animation: slide-in 3s cubic-bezier(0.77, 0, 0.175, 1); }\n\n.dropzone .dz-preview .dz-success-mark, .dropzone .dz-preview .dz-error-mark {\n  pointer-events: none;\n  opacity: 0;\n  z-index: 500;\n  position: absolute;\n  display: block;\n  top: 50%;\n  left: 50%;\n  margin-left: -27px;\n  margin-top: -27px; }\n\n.dropzone .dz-preview .dz-success-mark svg, .dropzone .dz-preview .dz-error-mark svg {\n  display: block;\n  width: 54px;\n  height: 54px; }\n\n.dropzone .dz-preview.dz-processing .dz-progress {\n  opacity: 1;\n  -webkit-transition: all 0.2s linear;\n  -moz-transition: all 0.2s linear;\n  -ms-transition: all 0.2s linear;\n  -o-transition: all 0.2s linear;\n  transition: all 0.2s linear; }\n\n.dropzone .dz-preview.dz-complete .dz-progress {\n  opacity: 0;\n  -webkit-transition: opacity 0.4s ease-in;\n  -moz-transition: opacity 0.4s ease-in;\n  -ms-transition: opacity 0.4s ease-in;\n  -o-transition: opacity 0.4s ease-in;\n  transition: opacity 0.4s ease-in; }\n\n.dropzone .dz-preview:not(.dz-processing) .dz-progress {\n  -webkit-animation: pulse 6s ease infinite;\n  -moz-animation: pulse 6s ease infinite;\n  -ms-animation: pulse 6s ease infinite;\n  -o-animation: pulse 6s ease infinite;\n  animation: pulse 6s ease infinite; }\n\n.dropzone .dz-preview .dz-progress {\n  opacity: 1;\n  z-index: 1000;\n  pointer-events: none;\n  position: absolute;\n  height: 16px;\n  left: 50%;\n  top: 50%;\n  margin-top: -8px;\n  width: 80px;\n  margin-left: -40px;\n  background: rgba(255, 255, 255, 0.9);\n  -webkit-transform: scale(1);\n  border-radius: 8px;\n  overflow: hidden; }\n\n.dropzone .dz-preview .dz-progress .dz-upload {\n  background: #333;\n  background: linear-gradient(to bottom, #666, #444);\n  position: absolute;\n  top: 0;\n  left: 0;\n  bottom: 0;\n  width: 0;\n  -webkit-transition: width 300ms ease-in-out;\n  -moz-transition: width 300ms ease-in-out;\n  -ms-transition: width 300ms ease-in-out;\n  -o-transition: width 300ms ease-in-out;\n  transition: width 300ms ease-in-out; }\n\n.dropzone .dz-preview.dz-error .dz-error-message {\n  display: block; }\n\n.dropzone .dz-preview.dz-error:hover .dz-error-message {\n  opacity: 1;\n  pointer-events: auto; }\n\n.dropzone .dz-preview .dz-error-message {\n  pointer-events: none;\n  z-index: 1000;\n  position: absolute;\n  display: block;\n  display: none;\n  opacity: 0;\n  -webkit-transition: opacity 0.3s ease;\n  -moz-transition: opacity 0.3s ease;\n  -ms-transition: opacity 0.3s ease;\n  -o-transition: opacity 0.3s ease;\n  transition: opacity 0.3s ease;\n  border-radius: 8px;\n  font-size: 13px;\n  top: 130px;\n  left: -10px;\n  width: 140px;\n  background: #be2626;\n  background: linear-gradient(to bottom, #be2626, #a92222);\n  padding: 0.5em 1.2em;\n  color: white; }\n\n.dropzone .dz-preview .dz-error-message:after {\n  content: '';\n  position: absolute;\n  top: -6px;\n  left: 64px;\n  width: 0;\n  height: 0;\n  border-left: 6px solid transparent;\n  border-right: 6px solid transparent;\n  border-bottom: 6px solid #be2626; }\n\n.select2-container {\n  box-sizing: border-box;\n  display: inline-block;\n  margin: 0;\n  position: relative;\n  vertical-align: middle; }\n  .select2-container .select2-selection--single {\n    box-sizing: border-box;\n    cursor: pointer;\n    display: block;\n    height: 28px;\n    user-select: none;\n    -webkit-user-select: none; }\n    .select2-container .select2-selection--single .select2-selection__rendered {\n      display: block;\n      padding-left: 8px;\n      padding-right: 20px;\n      overflow: hidden;\n      text-overflow: ellipsis;\n      white-space: nowrap; }\n    .select2-container .select2-selection--single .select2-selection__clear {\n      position: relative; }\n  .select2-container[dir=\"rtl\"] .select2-selection--single .select2-selection__rendered {\n    padding-right: 8px;\n    padding-left: 20px; }\n  .select2-container .select2-selection--multiple {\n    box-sizing: border-box;\n    cursor: pointer;\n    display: block;\n    min-height: 32px;\n    user-select: none;\n    -webkit-user-select: none; }\n    .select2-container .select2-selection--multiple .select2-selection__rendered {\n      display: inline-block;\n      overflow: hidden;\n      padding-left: 8px;\n      text-overflow: ellipsis;\n      white-space: nowrap; }\n  .select2-container .select2-search--inline {\n    float: left; }\n    .select2-container .select2-search--inline .select2-search__field {\n      box-sizing: border-box;\n      border: none;\n      font-size: 100%;\n      margin-top: 5px;\n      padding: 0; }\n      .select2-container .select2-search--inline .select2-search__field::-webkit-search-cancel-button {\n        -webkit-appearance: none; }\n\n.select2-dropdown {\n  background-color: white;\n  border: 1px solid #aaa;\n  border-radius: 4px;\n  box-sizing: border-box;\n  display: block;\n  position: absolute;\n  left: -100000px;\n  width: 100%;\n  z-index: 1051; }\n\n.select2-results {\n  display: block; }\n\n.select2-results__options {\n  list-style: none;\n  margin: 0;\n  padding: 0; }\n\n.select2-results__option {\n  padding: 6px;\n  user-select: none;\n  -webkit-user-select: none; }\n  .select2-results__option[aria-selected] {\n    cursor: pointer; }\n\n.select2-container--open .select2-dropdown {\n  left: 0; }\n\n.select2-container--open .select2-dropdown--above {\n  border-bottom: none;\n  border-bottom-left-radius: 0;\n  border-bottom-right-radius: 0; }\n\n.select2-container--open .select2-dropdown--below {\n  border-top: none;\n  border-top-left-radius: 0;\n  border-top-right-radius: 0; }\n\n.select2-search--dropdown {\n  display: block;\n  padding: 4px; }\n  .select2-search--dropdown .select2-search__field {\n    padding: 4px;\n    width: 100%;\n    box-sizing: border-box; }\n    .select2-search--dropdown .select2-search__field::-webkit-search-cancel-button {\n      -webkit-appearance: none; }\n  .select2-search--dropdown.select2-search--hide {\n    display: none; }\n\n.select2-close-mask {\n  border: 0;\n  margin: 0;\n  padding: 0;\n  display: block;\n  position: fixed;\n  left: 0;\n  top: 0;\n  min-height: 100%;\n  min-width: 100%;\n  height: auto;\n  width: auto;\n  opacity: 0;\n  z-index: 99;\n  background-color: #fff;\n  filter: alpha(opacity=0); }\n\n.select2-hidden-accessible {\n  border: 0 !important;\n  clip: rect(0 0 0 0) !important;\n  height: 1px !important;\n  margin: -1px !important;\n  overflow: hidden !important;\n  padding: 0 !important;\n  position: absolute !important;\n  width: 1px !important; }\n\n.select2-container--default .select2-selection--single {\n  background-color: #fff;\n  border: 1px solid #aaa;\n  border-radius: 4px; }\n  .select2-container--default .select2-selection--single .select2-selection__rendered {\n    color: #444;\n    line-height: 28px; }\n  .select2-container--default .select2-selection--single .select2-selection__clear {\n    cursor: pointer;\n    float: right;\n    font-weight: bold; }\n  .select2-container--default .select2-selection--single .select2-selection__placeholder {\n    color: #999; }\n  .select2-container--default .select2-selection--single .select2-selection__arrow {\n    height: 26px;\n    position: absolute;\n    top: 1px;\n    right: 1px;\n    width: 20px; }\n    .select2-container--default .select2-selection--single .select2-selection__arrow b {\n      border-color: #888 transparent transparent transparent;\n      border-style: solid;\n      border-width: 5px 4px 0 4px;\n      height: 0;\n      left: 50%;\n      margin-left: -4px;\n      margin-top: -2px;\n      position: absolute;\n      top: 50%;\n      width: 0; }\n\n.select2-container--default[dir=\"rtl\"] .select2-selection--single .select2-selection__clear {\n  float: left; }\n\n.select2-container--default[dir=\"rtl\"] .select2-selection--single .select2-selection__arrow {\n  left: 1px;\n  right: auto; }\n\n.select2-container--default.select2-container--disabled .select2-selection--single {\n  background-color: #eee;\n  cursor: default; }\n  .select2-container--default.select2-container--disabled .select2-selection--single .select2-selection__clear {\n    display: none; }\n\n.select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b {\n  border-color: transparent transparent #888 transparent;\n  border-width: 0 4px 5px 4px; }\n\n.select2-container--default .select2-selection--multiple {\n  background-color: white;\n  border: 1px solid #aaa;\n  border-radius: 4px;\n  cursor: text; }\n  .select2-container--default .select2-selection--multiple .select2-selection__rendered {\n    box-sizing: border-box;\n    list-style: none;\n    margin: 0;\n    padding: 0 5px;\n    width: 100%; }\n    .select2-container--default .select2-selection--multiple .select2-selection__rendered li {\n      list-style: none; }\n  .select2-container--default .select2-selection--multiple .select2-selection__placeholder {\n    color: #999;\n    margin-top: 5px;\n    float: left; }\n  .select2-container--default .select2-selection--multiple .select2-selection__clear {\n    cursor: pointer;\n    float: right;\n    font-weight: bold;\n    margin-top: 5px;\n    margin-right: 10px; }\n  .select2-container--default .select2-selection--multiple .select2-selection__choice {\n    background-color: #e4e4e4;\n    border: 1px solid #aaa;\n    border-radius: 4px;\n    cursor: default;\n    float: left;\n    margin-right: 5px;\n    margin-top: 5px;\n    padding: 0 5px; }\n  .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {\n    color: #999;\n    cursor: pointer;\n    display: inline-block;\n    font-weight: bold;\n    margin-right: 2px; }\n    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {\n      color: #333; }\n\n.select2-container--default[dir=\"rtl\"] .select2-selection--multiple .select2-selection__choice, .select2-container--default[dir=\"rtl\"] .select2-selection--multiple .select2-selection__placeholder, .select2-container--default[dir=\"rtl\"] .select2-selection--multiple .select2-search--inline {\n  float: right; }\n\n.select2-container--default[dir=\"rtl\"] .select2-selection--multiple .select2-selection__choice {\n  margin-left: 5px;\n  margin-right: auto; }\n\n.select2-container--default[dir=\"rtl\"] .select2-selection--multiple .select2-selection__choice__remove {\n  margin-left: 2px;\n  margin-right: auto; }\n\n.select2-container--default.select2-container--focus .select2-selection--multiple {\n  border: solid black 1px;\n  outline: 0; }\n\n.select2-container--default.select2-container--disabled .select2-selection--multiple {\n  background-color: #eee;\n  cursor: default; }\n\n.select2-container--default.select2-container--disabled .select2-selection__choice__remove {\n  display: none; }\n\n.select2-container--default.select2-container--open.select2-container--above .select2-selection--single, .select2-container--default.select2-container--open.select2-container--above .select2-selection--multiple {\n  border-top-left-radius: 0;\n  border-top-right-radius: 0; }\n\n.select2-container--default.select2-container--open.select2-container--below .select2-selection--single, .select2-container--default.select2-container--open.select2-container--below .select2-selection--multiple {\n  border-bottom-left-radius: 0;\n  border-bottom-right-radius: 0; }\n\n.select2-container--default .select2-search--dropdown .select2-search__field {\n  border: 1px solid #aaa; }\n\n.select2-container--default .select2-search--inline .select2-search__field {\n  background: transparent;\n  border: none;\n  outline: 0;\n  box-shadow: none;\n  -webkit-appearance: textfield; }\n\n.select2-container--default .select2-results > .select2-results__options {\n  max-height: 200px;\n  overflow-y: auto; }\n\n.select2-container--default .select2-results__option[role=group] {\n  padding: 0; }\n\n.select2-container--default .select2-results__option[aria-disabled=true] {\n  color: #999; }\n\n.select2-container--default .select2-results__option[aria-selected=true] {\n  background-color: #ddd; }\n\n.select2-container--default .select2-results__option .select2-results__option {\n  padding-left: 1em; }\n  .select2-container--default .select2-results__option .select2-results__option .select2-results__group {\n    padding-left: 0; }\n  .select2-container--default .select2-results__option .select2-results__option .select2-results__option {\n    margin-left: -1em;\n    padding-left: 2em; }\n    .select2-container--default .select2-results__option .select2-results__option .select2-results__option .select2-results__option {\n      margin-left: -2em;\n      padding-left: 3em; }\n      .select2-container--default .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option {\n        margin-left: -3em;\n        padding-left: 4em; }\n        .select2-container--default .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option {\n          margin-left: -4em;\n          padding-left: 5em; }\n          .select2-container--default .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option {\n            margin-left: -5em;\n            padding-left: 6em; }\n\n.select2-container--default .select2-results__option--highlighted[aria-selected] {\n  background-color: #5897fb;\n  color: white; }\n\n.select2-container--default .select2-results__group {\n  cursor: default;\n  display: block;\n  padding: 6px; }\n\n.select2-container--classic .select2-selection--single {\n  background-color: #f7f7f7;\n  border: 1px solid #aaa;\n  border-radius: 0.25rem;\n  outline: 0;\n  background-image: -webkit-linear-gradient(top, white 50%, #eeeeee 100%);\n  background-image: -o-linear-gradient(top, white 50%, #eeeeee 100%);\n  background-image: linear-gradient(to bottom, white 50%, #eeeeee 100%);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFFFFFFF', endColorstr='#FFEEEEEE', GradientType=0); }\n  .select2-container--classic .select2-selection--single:focus {\n    border: 1px solid #5897fb; }\n  .select2-container--classic .select2-selection--single .select2-selection__rendered {\n    color: #444;\n    line-height: 28px; }\n  .select2-container--classic .select2-selection--single .select2-selection__clear {\n    cursor: pointer;\n    float: right;\n    font-weight: bold;\n    margin-right: 10px; }\n  .select2-container--classic .select2-selection--single .select2-selection__placeholder {\n    color: #999; }\n  .select2-container--classic .select2-selection--single .select2-selection__arrow {\n    background-color: #ddd;\n    border: none;\n    border-left: 1px solid #aaa;\n    border-top-right-radius: 0.25rem;\n    border-bottom-right-radius: 0.25rem;\n    height: 26px;\n    position: absolute;\n    top: 1px;\n    right: 1px;\n    width: 20px;\n    background-image: -webkit-linear-gradient(top, #eeeeee 50%, #cccccc 100%);\n    background-image: -o-linear-gradient(top, #eeeeee 50%, #cccccc 100%);\n    background-image: linear-gradient(to bottom, #eeeeee 50%, #cccccc 100%);\n    background-repeat: repeat-x;\n    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFEEEEEE', endColorstr='#FFCCCCCC', GradientType=0); }\n    .select2-container--classic .select2-selection--single .select2-selection__arrow b {\n      border-color: #888 transparent transparent transparent;\n      border-style: solid;\n      border-width: 5px 4px 0 4px;\n      height: 0;\n      left: 50%;\n      margin-left: -4px;\n      margin-top: -2px;\n      position: absolute;\n      top: 50%;\n      width: 0; }\n\n.select2-container--classic[dir=\"rtl\"] .select2-selection--single .select2-selection__clear {\n  float: left; }\n\n.select2-container--classic[dir=\"rtl\"] .select2-selection--single .select2-selection__arrow {\n  border: none;\n  border-right: 1px solid #aaa;\n  border-radius: 0;\n  border-top-left-radius: 0.25rem;\n  border-bottom-left-radius: 0.25rem;\n  left: 1px;\n  right: auto; }\n\n.select2-container--classic.select2-container--open .select2-selection--single {\n  border: 1px solid #5897fb; }\n  .select2-container--classic.select2-container--open .select2-selection--single .select2-selection__arrow {\n    background: transparent;\n    border: none; }\n    .select2-container--classic.select2-container--open .select2-selection--single .select2-selection__arrow b {\n      border-color: transparent transparent #888 transparent;\n      border-width: 0 4px 5px 4px; }\n\n.select2-container--classic.select2-container--open.select2-container--above .select2-selection--single {\n  border-top: none;\n  border-top-left-radius: 0;\n  border-top-right-radius: 0;\n  background-image: -webkit-linear-gradient(top, white 0%, #eeeeee 50%);\n  background-image: -o-linear-gradient(top, white 0%, #eeeeee 50%);\n  background-image: linear-gradient(to bottom, white 0%, #eeeeee 50%);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFFFFFFF', endColorstr='#FFEEEEEE', GradientType=0); }\n\n.select2-container--classic.select2-container--open.select2-container--below .select2-selection--single {\n  border-bottom: none;\n  border-bottom-left-radius: 0;\n  border-bottom-right-radius: 0;\n  background-image: -webkit-linear-gradient(top, #eeeeee 50%, white 100%);\n  background-image: -o-linear-gradient(top, #eeeeee 50%, white 100%);\n  background-image: linear-gradient(to bottom, #eeeeee 50%, white 100%);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFEEEEEE', endColorstr='#FFFFFFFF', GradientType=0); }\n\n.select2-container--classic .select2-selection--multiple {\n  background-color: white;\n  border: 1px solid #aaa;\n  border-radius: 0.25rem;\n  cursor: text;\n  outline: 0; }\n  .select2-container--classic .select2-selection--multiple:focus {\n    border: 1px solid #5897fb; }\n  .select2-container--classic .select2-selection--multiple .select2-selection__rendered {\n    list-style: none;\n    margin: 0;\n    padding: 0 5px; }\n  .select2-container--classic .select2-selection--multiple .select2-selection__clear {\n    display: none; }\n  .select2-container--classic .select2-selection--multiple .select2-selection__choice {\n    background-color: #e4e4e4;\n    border: 1px solid #aaa;\n    border-radius: 0.25rem;\n    cursor: default;\n    float: left;\n    margin-right: 5px;\n    margin-top: 5px;\n    padding: 0 5px; }\n  .select2-container--classic .select2-selection--multiple .select2-selection__choice__remove {\n    color: #888;\n    cursor: pointer;\n    display: inline-block;\n    font-weight: bold;\n    margin-right: 2px; }\n    .select2-container--classic .select2-selection--multiple .select2-selection__choice__remove:hover {\n      color: #555; }\n\n.select2-container--classic[dir=\"rtl\"] .select2-selection--multiple .select2-selection__choice {\n  float: right; }\n\n.select2-container--classic[dir=\"rtl\"] .select2-selection--multiple .select2-selection__choice {\n  margin-left: 5px;\n  margin-right: auto; }\n\n.select2-container--classic[dir=\"rtl\"] .select2-selection--multiple .select2-selection__choice__remove {\n  margin-left: 2px;\n  margin-right: auto; }\n\n.select2-container--classic.select2-container--open .select2-selection--multiple {\n  border: 1px solid #5897fb; }\n\n.select2-container--classic.select2-container--open.select2-container--above .select2-selection--multiple {\n  border-top: none;\n  border-top-left-radius: 0;\n  border-top-right-radius: 0; }\n\n.select2-container--classic.select2-container--open.select2-container--below .select2-selection--multiple {\n  border-bottom: none;\n  border-bottom-left-radius: 0;\n  border-bottom-right-radius: 0; }\n\n.select2-container--classic .select2-search--dropdown .select2-search__field {\n  border: 1px solid #aaa;\n  outline: 0; }\n\n.select2-container--classic .select2-search--inline .select2-search__field {\n  outline: 0;\n  box-shadow: none; }\n\n.select2-container--classic .select2-dropdown {\n  background-color: white;\n  border: 1px solid transparent; }\n\n.select2-container--classic .select2-dropdown--above {\n  border-bottom: none; }\n\n.select2-container--classic .select2-dropdown--below {\n  border-top: none; }\n\n.select2-container--classic .select2-results > .select2-results__options {\n  max-height: 200px;\n  overflow-y: auto; }\n\n.select2-container--classic .select2-results__option[role=group] {\n  padding: 0; }\n\n.select2-container--classic .select2-results__option[aria-disabled=true] {\n  color: grey; }\n\n.select2-container--classic .select2-results__option--highlighted[aria-selected] {\n  background-color: #3875d7;\n  color: white; }\n\n.select2-container--classic .select2-results__group {\n  cursor: default;\n  display: block;\n  padding: 6px; }\n\n.select2-container--classic.select2-container--open .select2-dropdown {\n  border-color: #5897fb; }\n\n/*! Select2 Bootstrap Theme v0.1.0-beta.9 | MIT License | github.com/select2/select2-bootstrap-theme */\n.select2-container--bootstrap {\n  display: block;\n  /*------------------------------------*      #COMMON STYLES\n  \\*------------------------------------*/\n  /**\n   * Search field in the Select2 dropdown.\n   */\n  /**\n   * No outline for all search fields - in the dropdown\n   * and inline in multi Select2s.\n   */\n  /**\n   * Adjust Select2's choices hover and selected styles to match\n   * Bootstrap 3's default dropdown styles.\n   *\n   * @see http://getbootstrap.com/components/#dropdowns\n   */\n  /**\n   * Clear the selection.\n   */\n  /**\n   * Address disabled Select2 styles.\n   *\n   * @see https://select2.github.io/examples.html#disabled\n   * @see http://getbootstrap.com/css/#forms-control-disabled\n   */\n  /*------------------------------------*      #DROPDOWN\n  \\*------------------------------------*/\n  /**\n   * Dropdown border color and box-shadow.\n   */\n  /**\n   * Limit the dropdown height.\n   */\n  /*------------------------------------*      #SINGLE SELECT2\n  \\*------------------------------------*/\n  /*------------------------------------*    #MULTIPLE SELECT2\n  \\*------------------------------------*/\n  /**\n   * Address Bootstrap control sizing classes\n   *\n   * 1. Reset Bootstrap defaults.\n   * 2. Adjust the dropdown arrow button icon position.\n   *\n   * @see http://getbootstrap.com/css/#forms-control-sizes\n   */\n  /* 1 */\n  /*------------------------------------*    #RTL SUPPORT\n  \\*------------------------------------*/ }\n  .select2-container--bootstrap .select2-selection {\n    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);\n    background-color: #fff;\n    border: 1px solid rgba(0, 0, 0, 0.15);\n    border-radius: 0.25rem;\n    color: #555555;\n    font-size: 1rem;\n    outline: 0; }\n    .select2-container--bootstrap .select2-selection.form-control {\n      border-radius: 0.25rem; }\n  .select2-container--bootstrap .select2-search--dropdown .select2-search__field {\n    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);\n    background-color: #fff;\n    border: 1px solid rgba(0, 0, 0, 0.15);\n    border-radius: 0.25rem;\n    color: #555555;\n    font-size: 1rem; }\n  .select2-container--bootstrap .select2-search__field {\n    outline: 0;\n    /* Firefox 18- */\n    /**\n     * Firefox 19+\n     *\n     * @see http://stackoverflow.com/questions/24236240/color-for-styled-placeholder-text-is-muted-in-firefox\n     */ }\n    .select2-container--bootstrap .select2-search__field::-webkit-input-placeholder {\n      color: #999; }\n    .select2-container--bootstrap .select2-search__field:-moz-placeholder {\n      color: #999; }\n    .select2-container--bootstrap .select2-search__field::-moz-placeholder {\n      color: #999;\n      opacity: 1; }\n    .select2-container--bootstrap .select2-search__field:-ms-input-placeholder {\n      color: #999; }\n  .select2-container--bootstrap .select2-results__option {\n    padding: 6px 12px;\n    /**\n     * Disabled results.\n     *\n     * @see https://select2.github.io/examples.html#disabled-results\n     */\n    /**\n     * Hover state.\n     */\n    /**\n     * Selected state.\n     */ }\n    .select2-container--bootstrap .select2-results__option[role=group] {\n      padding: 0; }\n    .select2-container--bootstrap .select2-results__option[aria-disabled=true] {\n      color: #999999;\n      cursor: not-allowed; }\n    .select2-container--bootstrap .select2-results__option[aria-selected=true] {\n      background-color: #f5f5f5;\n      color: #272727; }\n    .select2-container--bootstrap .select2-results__option--highlighted[aria-selected] {\n      background-color: #5d8fc2;\n      color: #fff; }\n    .select2-container--bootstrap .select2-results__option .select2-results__option {\n      padding: 6px 12px; }\n      .select2-container--bootstrap .select2-results__option .select2-results__option .select2-results__group {\n        padding-left: 0; }\n      .select2-container--bootstrap .select2-results__option .select2-results__option .select2-results__option {\n        margin-left: -12px;\n        padding-left: 24px; }\n        .select2-container--bootstrap .select2-results__option .select2-results__option .select2-results__option .select2-results__option {\n          margin-left: -24px;\n          padding-left: 36px; }\n          .select2-container--bootstrap .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option {\n            margin-left: -36px;\n            padding-left: 48px; }\n            .select2-container--bootstrap .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option {\n              margin-left: -48px;\n              padding-left: 60px; }\n              .select2-container--bootstrap .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option {\n                margin-left: -60px;\n                padding-left: 72px; }\n  .select2-container--bootstrap .select2-results__group {\n    color: #999999;\n    display: block;\n    padding: 6px 12px;\n    font-size: 0.875rem;\n    line-height: 1.5;\n    white-space: nowrap; }\n  .select2-container--bootstrap.select2-container--focus .select2-selection, .select2-container--bootstrap.select2-container--open .select2-selection {\n    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(77, 144, 254, 0.6);\n    transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;\n    border-color: #4D90FE; }\n  .select2-container--bootstrap.select2-container--open {\n    /**\n     * Make the dropdown arrow point up while the dropdown is visible.\n     */\n    /**\n     * Handle border radii of the container when the dropdown is showing.\n     */ }\n    .select2-container--bootstrap.select2-container--open .select2-selection .select2-selection__arrow b {\n      border-color: transparent transparent #999 transparent;\n      border-width: 0 4px 4px 4px; }\n    .select2-container--bootstrap.select2-container--open.select2-container--below .select2-selection {\n      border-bottom-right-radius: 0;\n      border-bottom-left-radius: 0;\n      border-bottom-color: transparent; }\n    .select2-container--bootstrap.select2-container--open.select2-container--above .select2-selection {\n      border-top-right-radius: 0;\n      border-top-left-radius: 0;\n      border-top-color: transparent; }\n  .select2-container--bootstrap .select2-selection__clear {\n    color: #999;\n    cursor: pointer;\n    float: right;\n    font-weight: bold;\n    margin-right: 10px; }\n    .select2-container--bootstrap .select2-selection__clear:hover {\n      color: #f8f8f8; }\n  .select2-container--bootstrap.select2-container--disabled .select2-selection {\n    border-color: rgba(0, 0, 0, 0.15);\n    box-shadow: none; }\n  .select2-container--bootstrap.select2-container--disabled .select2-selection,\n  .select2-container--bootstrap.select2-container--disabled .select2-search__field {\n    cursor: not-allowed; }\n  .select2-container--bootstrap.select2-container--disabled .select2-selection,\n  .select2-container--bootstrap.select2-container--disabled .select2-selection--multiple .select2-selection__choice {\n    background-color: #eeeeee; }\n  .select2-container--bootstrap.select2-container--disabled .select2-selection__clear,\n  .select2-container--bootstrap.select2-container--disabled .select2-selection--multiple .select2-selection__choice__remove {\n    display: none; }\n  .select2-container--bootstrap .select2-dropdown {\n    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);\n    border-color: #4D90FE;\n    overflow-x: hidden;\n    margin-top: -1px; }\n    .select2-container--bootstrap .select2-dropdown--above {\n      box-shadow: 0px -6px 12px rgba(0, 0, 0, 0.175);\n      margin-top: 1px; }\n  .select2-container--bootstrap .select2-results > .select2-results__options {\n    max-height: 200px;\n    overflow-y: auto; }\n  .select2-container--bootstrap .select2-selection--single {\n    height: 35px;\n    line-height: 1.5;\n    padding: 6px 24px 6px 12px;\n    /**\n     * Adjust the single Select2's dropdown arrow button appearance.\n     */ }\n    .select2-container--bootstrap .select2-selection--single .select2-selection__arrow {\n      position: absolute;\n      bottom: 0;\n      right: 12px;\n      top: 0;\n      width: 4px; }\n      .select2-container--bootstrap .select2-selection--single .select2-selection__arrow b {\n        border-color: #999 transparent transparent transparent;\n        border-style: solid;\n        border-width: 4px 4px 0 4px;\n        height: 0;\n        left: 0;\n        margin-left: -4px;\n        margin-top: -2px;\n        position: absolute;\n        top: 50%;\n        width: 0; }\n    .select2-container--bootstrap .select2-selection--single .select2-selection__rendered {\n      color: #555555;\n      padding: 0; }\n    .select2-container--bootstrap .select2-selection--single .select2-selection__placeholder {\n      color: #999; }\n  .select2-container--bootstrap .select2-selection--multiple {\n    min-height: 35px;\n    padding: 0;\n    height: auto;\n    /**\n     * Make Multi Select2's choices match Bootstrap 3's default button styles.\n     */\n    /**\n     * Minus 2px borders.\n     */\n    /**\n     * Clear the selection.\n     */ }\n    .select2-container--bootstrap .select2-selection--multiple .select2-selection__rendered {\n      box-sizing: border-box;\n      display: block;\n      line-height: 1.5;\n      list-style: none;\n      margin: 0;\n      overflow: hidden;\n      padding: 0;\n      width: 100%;\n      text-overflow: ellipsis;\n      white-space: nowrap; }\n    .select2-container--bootstrap .select2-selection--multiple .select2-selection__placeholder {\n      color: #999;\n      float: left;\n      margin-top: 5px; }\n    .select2-container--bootstrap .select2-selection--multiple .select2-selection__choice {\n      color: #555555;\n      background: #f8f8f8;\n      border: 1px solid transparent;\n      border-radius: 0.25rem;\n      cursor: default;\n      float: left;\n      margin: 5px 0 0 6px;\n      padding: 0 6px; }\n    .select2-container--bootstrap .select2-selection--multiple .select2-search--inline .select2-search__field {\n      background: transparent;\n      padding: 0 12px;\n      height: 33px;\n      line-height: 1.5;\n      margin-top: 0;\n      min-width: 5em; }\n    .select2-container--bootstrap .select2-selection--multiple .select2-selection__choice__remove {\n      color: #999;\n      cursor: pointer;\n      display: inline-block;\n      font-weight: bold;\n      margin-right: 3px; }\n      .select2-container--bootstrap .select2-selection--multiple .select2-selection__choice__remove:hover {\n        color: #f8f8f8; }\n    .select2-container--bootstrap .select2-selection--multiple .select2-selection__clear {\n      margin-top: 6px; }\n  .select2-container--bootstrap .select2-selection--single.input-sm,\n  .input-group-sm .select2-container--bootstrap .select2-selection--single,\n  .form-group-sm .select2-container--bootstrap .select2-selection--single {\n    border-radius: 0.2rem;\n    font-size: 0.875rem;\n    height: 1.8125rem;\n    line-height: 1.5;\n    padding: 5px 22px 5px 10px;\n    /* 2 */ }\n    .select2-container--bootstrap .select2-selection--single.input-sm .select2-selection__arrow b,\n    .input-group-sm .select2-container--bootstrap .select2-selection--single .select2-selection__arrow b,\n    .form-group-sm .select2-container--bootstrap .select2-selection--single .select2-selection__arrow b {\n      margin-left: -5px; }\n  .select2-container--bootstrap .select2-selection--multiple.input-sm,\n  .input-group-sm .select2-container--bootstrap .select2-selection--multiple,\n  .form-group-sm .select2-container--bootstrap .select2-selection--multiple {\n    min-height: 1.8125rem;\n    border-radius: 0.2rem; }\n    .select2-container--bootstrap .select2-selection--multiple.input-sm .select2-selection__choice,\n    .input-group-sm .select2-container--bootstrap .select2-selection--multiple .select2-selection__choice,\n    .form-group-sm .select2-container--bootstrap .select2-selection--multiple .select2-selection__choice {\n      font-size: 0.875rem;\n      line-height: 1.5;\n      margin: 4px 0 0 5px;\n      padding: 0 5px; }\n    .select2-container--bootstrap .select2-selection--multiple.input-sm .select2-search--inline .select2-search__field,\n    .input-group-sm .select2-container--bootstrap .select2-selection--multiple .select2-search--inline .select2-search__field,\n    .form-group-sm .select2-container--bootstrap .select2-selection--multiple .select2-search--inline .select2-search__field {\n      padding: 0 10px;\n      font-size: 0.875rem;\n      height: -0.1875rem;\n      line-height: 1.5; }\n    .select2-container--bootstrap .select2-selection--multiple.input-sm .select2-selection__clear,\n    .input-group-sm .select2-container--bootstrap .select2-selection--multiple .select2-selection__clear,\n    .form-group-sm .select2-container--bootstrap .select2-selection--multiple .select2-selection__clear {\n      margin-top: 5px; }\n  .select2-container--bootstrap .select2-selection--single.input-lg,\n  .input-group-lg .select2-container--bootstrap .select2-selection--single,\n  .form-group-lg .select2-container--bootstrap .select2-selection--single {\n    border-radius: 0.3rem;\n    font-size: 1.25rem;\n    height: 3.16667rem;\n    line-height: 1.33333;\n    padding: 10px 28px 10px 16px;\n    /* 1 */ }\n    .select2-container--bootstrap .select2-selection--single.input-lg .select2-selection__arrow,\n    .input-group-lg .select2-container--bootstrap .select2-selection--single .select2-selection__arrow,\n    .form-group-lg .select2-container--bootstrap .select2-selection--single .select2-selection__arrow {\n      width: 4px; }\n      .select2-container--bootstrap .select2-selection--single.input-lg .select2-selection__arrow b,\n      .input-group-lg .select2-container--bootstrap .select2-selection--single .select2-selection__arrow b,\n      .form-group-lg .select2-container--bootstrap .select2-selection--single .select2-selection__arrow b {\n        border-width: 4px 4px 0 4px;\n        margin-left: -4px;\n        margin-left: -10px;\n        margin-top: -2px; }\n  .select2-container--bootstrap .select2-selection--multiple.input-lg,\n  .input-group-lg .select2-container--bootstrap .select2-selection--multiple,\n  .form-group-lg .select2-container--bootstrap .select2-selection--multiple {\n    min-height: 3.16667rem;\n    border-radius: 0.3rem; }\n    .select2-container--bootstrap .select2-selection--multiple.input-lg .select2-selection__choice,\n    .input-group-lg .select2-container--bootstrap .select2-selection--multiple .select2-selection__choice,\n    .form-group-lg .select2-container--bootstrap .select2-selection--multiple .select2-selection__choice {\n      font-size: 1.25rem;\n      line-height: 1.33333;\n      border-radius: 0.25rem;\n      margin: 9px 0 0 8px;\n      padding: 0 10px; }\n    .select2-container--bootstrap .select2-selection--multiple.input-lg .select2-search--inline .select2-search__field,\n    .input-group-lg .select2-container--bootstrap .select2-selection--multiple .select2-search--inline .select2-search__field,\n    .form-group-lg .select2-container--bootstrap .select2-selection--multiple .select2-search--inline .select2-search__field {\n      padding: 0 16px;\n      font-size: 1.25rem;\n      height: 1.16667rem;\n      line-height: 1.33333; }\n    .select2-container--bootstrap .select2-selection--multiple.input-lg .select2-selection__clear,\n    .input-group-lg .select2-container--bootstrap .select2-selection--multiple .select2-selection__clear,\n    .form-group-lg .select2-container--bootstrap .select2-selection--multiple .select2-selection__clear {\n      margin-top: 10px; }\n  .select2-container--bootstrap .select2-selection.input-lg.select2-container--open .select2-selection--single {\n    /**\n     * Make the dropdown arrow point up while the dropdown is visible.\n     */ }\n    .select2-container--bootstrap .select2-selection.input-lg.select2-container--open .select2-selection--single .select2-selection__arrow b {\n      border-color: transparent transparent #999 transparent;\n      border-width: 0 4px 4px 4px; }\n  .input-group-lg .select2-container--bootstrap .select2-selection.select2-container--open .select2-selection--single {\n    /**\n     * Make the dropdown arrow point up while the dropdown is visible.\n     */ }\n    .input-group-lg .select2-container--bootstrap .select2-selection.select2-container--open .select2-selection--single .select2-selection__arrow b {\n      border-color: transparent transparent #999 transparent;\n      border-width: 0 4px 4px 4px; }\n  .select2-container--bootstrap[dir=\"rtl\"] {\n    /**\n     * Single Select2\n     *\n     * 1. Makes sure that .select2-selection__placeholder is positioned\n     *    correctly.\n     */\n    /**\n     * Multiple Select2\n     */ }\n    .select2-container--bootstrap[dir=\"rtl\"] .select2-selection--single {\n      padding-left: 24px;\n      padding-right: 12px; }\n      .select2-container--bootstrap[dir=\"rtl\"] .select2-selection--single .select2-selection__rendered {\n        padding-right: 0;\n        padding-left: 0;\n        text-align: right;\n        /* 1 */ }\n      .select2-container--bootstrap[dir=\"rtl\"] .select2-selection--single .select2-selection__clear {\n        float: left; }\n      .select2-container--bootstrap[dir=\"rtl\"] .select2-selection--single .select2-selection__arrow {\n        left: 12px;\n        right: auto; }\n        .select2-container--bootstrap[dir=\"rtl\"] .select2-selection--single .select2-selection__arrow b {\n          margin-left: 0; }\n    .select2-container--bootstrap[dir=\"rtl\"] .select2-selection--multiple .select2-selection__choice,\n    .select2-container--bootstrap[dir=\"rtl\"] .select2-selection--multiple .select2-selection__placeholder {\n      float: right; }\n    .select2-container--bootstrap[dir=\"rtl\"] .select2-selection--multiple .select2-selection__choice {\n      margin-left: 0;\n      margin-right: 6px; }\n    .select2-container--bootstrap[dir=\"rtl\"] .select2-selection--multiple .select2-selection__choice__remove {\n      margin-left: 2px;\n      margin-right: auto; }\n\n/*------------------------------------*  #ADDITIONAL GOODIES\n\\*------------------------------------*/\n/**\n * Address Bootstrap's validation states\n *\n * If a Select2 widget parent has one of Bootstrap's validation state modifier\n * classes, adjust Select2's border colors and focus states accordingly.\n * You may apply said classes to the Select2 dropdown (body > .select2-container)\n * via JavaScript match Bootstraps' to make its styles match.\n *\n * @see http://getbootstrap.com/css/#forms-control-validation\n */\n.has-warning .select2-dropdown,\n.has-warning .select2-selection {\n  border-color: #8a6d3b; }\n\n.has-warning .select2-container--focus .select2-selection,\n.has-warning .select2-container--open .select2-selection {\n  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #c0a16b;\n  border-color: #66512c; }\n\n.has-warning.select2-drop-active {\n  border-color: #66512c; }\n  .has-warning.select2-drop-active.select2-drop.select2-drop-above {\n    border-top-color: #66512c; }\n\n.has-error .select2-dropdown,\n.has-error .select2-selection {\n  border-color: #a94442; }\n\n.has-error .select2-container--focus .select2-selection,\n.has-error .select2-container--open .select2-selection {\n  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #ce8483;\n  border-color: #843534; }\n\n.has-error.select2-drop-active {\n  border-color: #843534; }\n  .has-error.select2-drop-active.select2-drop.select2-drop-above {\n    border-top-color: #843534; }\n\n.has-success .select2-dropdown,\n.has-success .select2-selection {\n  border-color: #3c763d; }\n\n.has-success .select2-container--focus .select2-selection,\n.has-success .select2-container--open .select2-selection {\n  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #67b168;\n  border-color: #2b542c; }\n\n.has-success.select2-drop-active {\n  border-color: #2b542c; }\n  .has-success.select2-drop-active.select2-drop.select2-drop-above {\n    border-top-color: #2b542c; }\n\n/**\n * Select2 widgets in Bootstrap Input Groups\n *\n * When Select2 widgets are combined with other elements using Bootstraps\n * \"Input Group\" component, we don't want specific edges of the Select2\n * container to have a border-radius.\n *\n * Use .select2-bootstrap-prepend and .select2-bootstrap-append on\n * a Bootstrap 3 .input-group to let the contained Select2 widget know which\n * edges should not be rounded as they are directly followed by another element.\n *\n * @see http://getbootstrap.com/components/#input-groups\n */\n/**\n * Mimick Bootstraps .input-group .form-control styles.\n *\n * @see https://github.com/twbs/bootstrap/blob/master/less/input-groups.less\n */\n.input-group .select2-container--bootstrap {\n  display: table;\n  table-layout: fixed;\n  position: relative;\n  z-index: 2;\n  float: left;\n  width: 100%;\n  margin-bottom: 0;\n  /**\n   * Adjust z-index like Bootstrap does to show the focus-box-shadow\n   * above appended buttons in .input-group and .form-group.\n   */ }\n  .input-group .select2-container--bootstrap.select2-container--open, .input-group .select2-container--bootstrap.select2-container--focus {\n    z-index: 3; }\n\n.input-group.select2-bootstrap-prepend .select2-container--bootstrap .select2-selection {\n  border-bottom-left-radius: 0;\n  border-top-left-radius: 0; }\n\n.input-group.select2-bootstrap-append .select2-container--bootstrap .select2-selection {\n  border-bottom-right-radius: 0;\n  border-top-right-radius: 0; }\n\n/**\n * Adjust alignment of Bootstrap buttons in Bootstrap Input Groups to address\n * Multi Select2's height which - depending on how many elements have been selected -\n * may grow taller than its initial size.\n *\n * @see http://getbootstrap.com/components/#input-groups\n */\n.select2-bootstrap-append .select2-container--bootstrap,\n.select2-bootstrap-append .input-group-btn,\n.select2-bootstrap-append .input-group-btn .btn,\n.select2-bootstrap-prepend .select2-container--bootstrap,\n.select2-bootstrap-prepend .input-group-btn,\n.select2-bootstrap-prepend .input-group-btn .btn {\n  vertical-align: top; }\n\n/**\n * Temporary fix for https://github.com/select2/select2-bootstrap-theme/issues/9\n *\n * Provides `!important` for certain properties of the class applied to the\n * original `<select>` element to hide it.\n *\n * @see https://github.com/select2/select2/pull/3301\n * @see https://github.com/fk/select2/commit/31830c7b32cb3d8e1b12d5b434dee40a6e753ada\n */\n.form-control.select2-hidden-accessible {\n  position: absolute !important;\n  width: 1px !important; }\n\n/**\n * Display override for inline forms\n */\n.form-inline .select2-container--bootstrap {\n  display: inline-block; }\n\n.selectType {\n  padding: 10px;\n  width: 320px;\n  border-radius: 0;\n  border: 1px solid #ccc;\n  color: #222222; }\n\n.table-responsive {\n  margin-top: 100px; }\n\n.view {\n  width: 100%;\n  height: 30px;\n  text-transform: uppercase;\n  font-size: 12px;\n  color: white; }\n\n.order-detail {\n  box-shadow: -4px 0 2px #ccc;\n  padding: 20px;\n  background: white; }\n\n#enter {\n  width: 320px !important; }\n\n#enter1 {\n  width: 320px !important; }\n\n.heading {\n  font-size: 20px;\n  color: black;\n  font-weight: 900; }\n\n.addbtn {\n  width: 320px !important;\n  margin-top: 13px !important; }\n\n.value {\n  font-size: 14px;\n  text-transform: capitalize;\n  color: black;\n  font-weight: 400 !important; }\n\n.table > thead > tr > th {\n  font-weight: bold !important;\n  color: black !important; }\n\n.table > thead > tr > td {\n  color: black !important; }\n\n.detail-heading {\n  text-align: center;\n  margin: 25px 0;\n  color: black;\n  text-transform: uppercase;\n  font-weight: bold; }\n\n/* The snackbar - position it at the bottom and in the middle of the screen */\n#snackbar {\n  visibility: hidden;\n  /* Hidden by default. Visible on click */\n  min-width: 250px;\n  /* Set a default minimum width */\n  margin-left: -125px;\n  /* Divide value of min-width by 2 */\n  background-color: #333;\n  /* Black background color */\n  color: #fff;\n  /* White text color */\n  text-align: center;\n  /* Centered text */\n  border-radius: 2px;\n  /* Rounded borders */\n  padding: 16px;\n  /* Padding */\n  position: fixed;\n  /* Sit on top of the screen */\n  z-index: 1;\n  /* Add a z-index if needed */\n  left: 50%;\n  /* Center the snackbar */\n  bottom: 30px;\n  /* 30px from the bottom */ }\n\n/* Show the snackbar when clicking on a button (class added with JavaScript) */\n#snackbar.show {\n  visibility: visible;\n  /* Show the snackbar */\n  /* Add animation: Take 0.5 seconds to fade in and out the snackbar. \r\nHowever, delay the fade out process for 2.5 seconds */\n  -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;\n  animation: fadein 0.5s, fadeout 0.5s 2.5s; }\n\n/* Animations to fade the snackbar in and out */\n@-webkit-keyframes fadein {\n  from {\n    bottom: 0;\n    opacity: 0; }\n  to {\n    bottom: 30px;\n    opacity: 1; } }\n\n@keyframes fadein {\n  from {\n    bottom: 0;\n    opacity: 0; }\n  to {\n    bottom: 30px;\n    opacity: 1; } }\n\n@-webkit-keyframes fadeout {\n  from {\n    bottom: 30px;\n    opacity: 1; }\n  to {\n    bottom: 0;\n    opacity: 0; } }\n\n@keyframes fadeout {\n  from {\n    bottom: 30px;\n    opacity: 1; }\n  to {\n    bottom: 0;\n    opacity: 0; } }\n"
+throw new Error("Module build failed: Error: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (57)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v3.9.3\n    at Object.<anonymous> (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\node-sass\\lib\\index.js:13:11)\n    at Module._compile (module.js:652:30)\n    at Object.Module._extensions..js (module.js:663:10)\n    at Module.load (module.js:565:32)\n    at tryModuleLoad (module.js:505:12)\n    at Function.Module._load (module.js:497:3)\n    at Module.require (module.js:596:17)\n    at require (internal/module.js:11:18)\n    at Object.<anonymous> (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\sass-loader\\index.js:4:12)\n    at Module._compile (module.js:652:30)\n    at Object.Module._extensions..js (module.js:663:10)\n    at Module.load (module.js:565:32)\n    at tryModuleLoad (module.js:505:12)\n    at Function.Module._load (module.js:497:3)\n    at Module.require (module.js:596:17)\n    at require (internal/module.js:11:18)\n    at loadLoader (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\loadLoader.js:13:17)\n    at iteratePitchingLoaders (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\LoaderRunner.js:169:2)\n    at iteratePitchingLoaders (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\LoaderRunner.js:165:10)\n    at D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\LoaderRunner.js:173:18\n    at loadLoader (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\loadLoader.js:36:3)\n    at iteratePitchingLoaders (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\LoaderRunner.js:169:2)\n    at runLoaders (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\loader-runner\\lib\\LoaderRunner.js:362:2)\n    at NormalModule.doBuild (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\NormalModule.js:125:2)\n    at NormalModule.build (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\NormalModule.js:173:15)\n    at Compilation.buildModule (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\Compilation.js:127:9)\n    at D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\Compilation.js:303:10\n    at D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\NormalModuleFactory.js:63:13\n    at NormalModuleFactory.applyPluginsAsyncWaterfall (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\tapable\\lib\\Tapable.js:260:70)\n    at onDoneResolving (D:\\ideofuzion\\Boteeque\\Boutique 1\\Boutique 1-18-2018\\node_modules\\webpack\\lib\\NormalModuleFactory.js:38:11)");
 
 /***/ },
 
-/***/ "./src/app/userData/userData.template.html":
+/***/ "./src/app/orderDetailsItems/orderDetailsItems.template.html":
 /***/ function(module, exports) {
 
-module.exports = "<h1>Add User Form</h1>\r\n<div id=\"snackbar\"></div>\r\n\r\n<div class=\"container\">\r\n\r\n  <div class=\"row\">\r\n    <div class=\"col-md-6 col-lg-6 col-sm-6 offset-lg-3 offset-md-3 offset-sm-3 common-form\">\r\n      <div class=\"form-group\">\r\n        <select class=\"selectType\" (change)=\"getCustomerId($event.target.value)\">\r\n          <option disabled selected>Select User</option>\r\n          <option *ngFor=\"let user of allEmployees\" value=\"{{user._id}}\">{{user.FullName}}</option>\r\n        </select>\r\n      </div>\r\n      <div class=\"form-group\">\r\n\r\n        <label for=\"normal-field\" class=\"col-form-label\">Enter User Name</label>\r\n\r\n        <input type=\"text\" [(ngModel)]=\"Name\" id=\"enter\" class=\"form-control enter custom-inputs\" placeholder=\"Please Enter Name\">\r\n      </div>\r\n      <div class=\"form-group\">\r\n\r\n        <label for=\"normal-field\" class=\"col-form-label\">Enter Password</label>\r\n\r\n        <input type=\"password\" id=\"enter1\" [(ngModel)]=\"Password\" class=\"form-control enter custom-inputs\" placeholder=\"Please Enter Password\">\r\n\r\n      </div>\r\n      <div class=\"form-group\">\r\n        <button (click)=\"addUser()\" class=\"addbtn btn-primary\">Add</button>\r\n      </div>\r\n\r\n\r\n\r\n\r\n\r\n\r\n    </div>\r\n  </div>\r\n\r\n  <div class=\"row row-2\">\r\n\r\n\r\n  </div>\r\n</div>"
+module.exports = "<div class=\"row\">\r\n\r\n  <div id=\"snackbar\"></div>\r\n\r\n<div class=\"col-md-12 col-lg-12 col-sm-12 col-xs-12\">\r\n\r\n\r\n    <select class=\"selectType\" (change)=\"getOrdersByStatus($event.target.value)\">\r\n        <option disabled selected>Select Status</option>\r\n        <option value=\"100\">Pending</option>\r\n        <option value=\"200\">Cutting</option>\r\n        <option value=\"300\">Stiching</option>\r\n        <option value=\"400\">Ready at warehouse</option>\r\n        <option value=\"500\">Reached Outlet</option>\r\n  </select> \r\n  \r\n  \r\n  <div class=\"table-responsive\">          \r\n      <table class=\"table table-bordered table-striped\">\r\n        <thead>\r\n          <tr>\r\n            <th>#</th>\r\n            <th>Customer Name</th>\r\n            <th>Contact Number</th> \r\n            <th>Price</th>\r\n            <th>Quantity</th>\r\n            <th>Sticher Name</th>\r\n            <th>Master Name</th>\r\n            <th>Try Date</th>\r\n            <th>Delivery Date</th> \r\n            <th>Status</th> \r\n           <th>Status Change</th>\r\n          </tr>\r\n        </thead>\r\n        <tbody>\r\n<ng-container *ngIf=\"forms\">\r\n          <tr *ngFor=\"let order of _OrderItemModel;let i=index\">\r\n            <td>{{i}}</td>\r\n            <td>{{order.CustomerId.FullName}}</td>\r\n            <td>{{order?.CustomerId.ContactNumber}}</td>\r\n            <td>{{order?.Price}}</td>\r\n            <td>{{order?.Quantity}}</td>\r\n            <td>{{order?.SticherName}}</td>\r\n            <td>{{order?.MasterName}}</td>\r\n            <td>{{order?.TryDate}}\r\n            <td>{{order?.DeliveryDate}}</td>\r\n            <td>{{order?.OrderItemStatus}}</td>\r\n            <td> <select class=\"selectType\" (change)=\"setOrderStatus($event.target.value,order)\">\r\n            <option disabled selected>Select Status</option>\r\n            <option value=\"100\">Pending</option>\r\n            <option value=\"200\">Cutting</option>\r\n            <option value=\"300\">Stiching</option>\r\n            <option value=\"400\">Ready at warehouse</option>\r\n            <option value=\"500\">Reached Outlet</option>\r\n      </select> \r\n      </td>\r\n          </tr>\r\n            </ng-container>\r\n           \r\n         \r\n        </tbody>\r\n      </table>\r\n      </div>\r\n\r\n\r\n</div>\r\n\r\n<div class=\"col-md-8 col-lg-8 col-sm-8 offset-lg-2 offset-md-2 offset-sm-2 col-xs-12\">\r\n\r\n\r\n  <div *ngIf=\"orderFetched\" class=\"order-detail\">\r\n\r\n\r\n  <h1 class=\"detail-heading\">Order Detail</h1>\r\n\r\n\r\n  <p class=\"heading\">Name : <span class=\"value\">{{OneOrder.CustomerId.FullName}}</span></p>\r\n\r\n  <p class=\"heading\">Contact Number : <span class=\"value\">{{OneOrder.CustomerId.ContactNumber}}</span></p>\r\n\r\n  <p class=\"heading\">Email : <span class=\"value\">{{OneOrder.CustomerId.Email}}</span></p>\r\n\r\n  <p class=\"heading\">Delivery Date : <span class=\"value\">{{OneOrder.DeliveryDate}}</span></p>\r\n\r\n  <p class=\"heading\">Try Date : <span class=\"value\">{{OneOrder.TryDate}}</span></p>\r\n\r\n  <p class=\"heading\" *ngIf=\"this.IsAdmin\">Order Total : <span class=\"value\">{{OneOrder.OrderTotal}}</span></p>\r\n\r\n  <p class=\"heading\" *ngIf=\"this.IsAdmin\">Advance Received : <span class=\"value\">{{OneOrder.AdvanceReceived}}</span></p>\r\n\r\n  <p class=\"heading\">Special Instructions: <span class=\"value\">{{OneOrder.SpecialInstructions}}</span></p>\r\n\r\n\r\n\r\n  <div class=\"table-responsive\">          \r\n      <table class=\"table table-bordered\">\r\n        <thead>\r\n          <tr>\r\n            <th>#</th>\r\n            <th>Product Name</th>\r\n            <th>Quantity</th>\r\n            <th *ngIf=\"this.IsAdmin\">Price</th>\r\n            <th>Special Instructions</th>\r\n            <th>Stitcher</th>\r\n            <th>Master</th>\r\n            <th>Action</th>\r\n            \r\n          </tr>\r\n        </thead>\r\n        <tbody>\r\n          <tr *ngFor=\"let orderitem of OneOrder.OrderItemId;let i=index\">\r\n            <td>{{i}}</td>\r\n            <td>{{orderitem.ProductName}}</td>\r\n            <td>{{orderitem.Quantity}}</td>\r\n            <td *ngIf=\"this.IsAdmin\">{{orderitem.Price}}</td>\r\n            <td>{{orderitem.SpecialInstructions}}</td>\r\n            <td>\r\n              <select class=\"selectType\" (change)=\"getSelectedStitcher($event.target.value)\">\r\n                <option disabled selected>Select User</option>\r\n                <option *ngFor=\"let user of allEmployees\" value=\"{{user._id}}\">{{user.FullName}}</option>\r\n              </select>\r\n            </td>\r\n\r\n            <td>\r\n              <select class=\"selectType\" (change)=\"getSelectedMaster($event.target.value)\">\r\n                <option disabled selected>Select User</option>\r\n                <option *ngFor=\"let user of allEmployees\" value=\"{{user._id}}\">{{user.FullName}}</option>\r\n              </select>\r\n            </td>\r\n            <td>\r\n              <button class=\"btn btn-info\" (click)='assignItems(orderitem)'>Assign</button>\r\n            </td>\r\n          </tr>\r\n        </tbody>\r\n      </table>\r\n      </div>\r\n\r\n\r\n</div>\r\n\r\n\r\n</div>\r\n\r\n  \r\n</div>"
 
 /***/ },
 
@@ -22039,7 +20508,7 @@ var Server = (function () {
     }
     Server.prototype.getServerURL = function () {
         // return "http://localhost:3100/";
-        return "https://botiquetest.azurewebsites.net/";
+        return "https://ssbotique1.azurewebsites.net/";
     };
     return Server;
 }());
